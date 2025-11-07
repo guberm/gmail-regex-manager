@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gmail Regex Rules Manager</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📧 Gmail Rules Manager</h1>
+      <div class="auth-status">
+        <span id="authStatus">Not authenticated</span>
+        <button id="authBtn" class="btn btn-small">Sign In</button>
+      </div>
+    </header>
+
+    <div class="settings-section">
+      <div class="toggle-container">
+        <label class="toggle">
+          <input type="checkbox" id="enabledToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+        <span>Auto-process emails</span>
+      </div>
+      <div class="last-check">
+        Last checked: <span id="lastChecked">Never</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="rules">Rules</button>
+      <button class="tab-btn" data-tab="create">Create Rule</button>
+      <button class="tab-btn" data-tab="test">Test</button>
+    </div>
+
+    <div class="tab-content active" id="rulesTab">
+      <div class="rules-header">
+        <h2>Active Rules</h2>
+        <button id="addRuleBtn" class="btn btn-small">+ New Rule</button>
+      </div>
+      <div id="rulesList" class="rules-list">
+        <!-- Rules will be populated here -->
+      </div>
+    </div>
+
+    <div class="tab-content" id="createTab">
+      <h2 id="formTitle">Create New Rule</h2>
+      <form id="ruleForm">
+        <input type="hidden" id="ruleId">
+        
+        <div class="form-group">
+          <label for="ruleName">Rule Name</label>
+          <input type="text" id="ruleName" placeholder="e.g., Newsletter Filter" required>
+        </div>
+
+        <div class="form-section">
+          <h3>Match Conditions (Regex)</h3>
+          <p class="help-text">Leave empty to skip that field. Patterns are case-insensitive.</p>
+          
+          <div class="form-group">
+            <label for="fromPattern">From Pattern</label>
+            <input type="text" id="fromPattern" placeholder="e.g., .*@newsletter\.com">
+            <small>Match sender email address</small>
+          </div>
+
+          <div class="form-group">
+            <label for="toPattern">To Pattern</label>
+            <input type="text" id="toPattern" placeholder="e.g., .*@mydomain\.com">
+            <small>Match recipient email address</small>
+          </div>
+
+          <div class="form-group">
+            <label for="subjectPattern">Subject Pattern</label>
+            <input type="text" id="subjectPattern" placeholder="e.g., ^\[URGENT\].*">
+            <small>Match email subject</small>
+          </div>
+
+          <div class="form-group">
+            <label for="bodyPattern">Body Pattern</label>
+            <input type="text" id="bodyPattern" placeholder="e.g., .*(invoice|payment).*">
+            <small>Match email body/snippet</small>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Actions</h3>
+          
+          <div class="form-group">
+            <label for="addLabels">Add Labels (comma-separated)</label>
+            <input type="text" id="addLabels" placeholder="e.g., Newsletter, Auto-Processed">
+          </div>
+
+          <div class="form-group">
+            <label for="removeLabels">Remove Labels (comma-separated)</label>
+            <input type="text" id="removeLabels" placeholder="e.g., Inbox">
+          </div>
+
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" id="markAsRead">
+              Mark as read
+            </label>
+            <label>
+              <input type="checkbox" id="markAsImportant">
+              Mark as important
+            </label>
+            <label>
+              <input type="checkbox" id="star">
+              Star email
+            </label>
+            <label>
+              <input type="checkbox" id="archive">
+              Archive (remove from inbox)
+            </label>
+            <label>
+              <input type="checkbox" id="trash">
+              Move to trash
+            </label>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Rule</button>
+          <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="tab-content" id="testTab">
+      <h2>Test Rules</h2>
+      <p class="help-text">Test your regex patterns against sample email data</p>
+      
+      <div class="form-group">
+        <label for="testFrom">From</label>
+        <input type="email" id="testFrom" placeholder="sender@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="testTo">To</label>
+        <input type="email" id="testTo" placeholder="recipient@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="testSubject">Subject</label>
+        <input type="text" id="testSubject" placeholder="Email subject">
+      </div>
+
+      <div class="form-group">
+        <label for="testBody">Body</label>
+        <textarea id="testBody" rows="4" placeholder="Email body or snippet"></textarea>
+      </div>
+
+      <button id="testRulesBtn" class="btn btn-primary">Test Against All Rules</button>
+      
+      <div id="testResults" class="test-results">
+        <!-- Test results will appear here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

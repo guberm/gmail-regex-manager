@@ -1,0 +1,22 @@
+{
+  "name": "Gmail Regex Rules Manager",
+  "version": "1.0.0",
+  "description": "Chrome extension for managing Gmail with regex-based rules",
+  "scripts": {
+    "build": "echo Extension ready for loading in Chrome",
+    "test": "echo Use the Test tab in the extension popup to test rules"
+  },
+  "keywords": [
+    "gmail",
+    "regex",
+    "email",
+    "automation",
+    "chrome-extension"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/gmail-regex-manager"
+  }
+}

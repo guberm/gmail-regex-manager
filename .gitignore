@@ -1,0 +1,30 @@
+# Node dependencies
+node_modules/
+
+# Build artifacts
+build/
+dist/
+.out/
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Chrome extension artifacts
+*.crx
+*.pem
+
+# Optional: local env files
+.env
+.env.*
+
+# Packaging
+*.zip

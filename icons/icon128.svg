@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+</style>
+</head>
+<body>
+<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="#4285f4"/>
+  
+  <!-- Envelope -->
+  <rect x="24" y="40" width="80" height="56" rx="4" fill="white"/>
+  <path d="M 24 44 L 64 72 L 104 44" stroke="#4285f4" stroke-width="3" fill="none"/>
+  
+  <!-- Regex symbol -->
+  <circle cx="94" cy="84" r="16" fill="#34a853"/>
+  <text x="94" y="92" font-family="monospace" font-size="18" font-weight="bold" fill="white" text-anchor="middle">.*</text>
+</svg>
+</body>
+</html>
