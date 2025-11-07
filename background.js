@@ -120,6 +120,7 @@ async function processEmailsWithRules(emails) {
   const startTime = performance.now();
   let matchChecks = 0;
   let ruleMatches = 0;
+  const matchedRuleIdsThisRun = new Set();
   for (const email of emails) {
     for (const rule of rules) {
       if (!rule.enabled) continue;
@@ -127,6 +128,11 @@ async function processEmailsWithRules(emails) {
       const matches = await matchesRule(email, rule);
       if (matches) {
         ruleMatches++;
+        // Update per-rule statistics
+        if (!rule.stats) rule.stats = { count: 0, lastMatched: null };
+        rule.stats.count += 1;
+        rule.stats.lastMatched = Date.now();
+        matchedRuleIdsThisRun.add(rule.id);
         // applyRuleActions now provided by gmailActions.js (attached to global scope)
         if (typeof self.applyRuleActions === 'function') {
           await self.applyRuleActions(email, rule, token);
@@ -141,6 +147,14 @@ async function processEmailsWithRules(emails) {
   if (typeof self.createPerfEntry === 'function' && typeof self.storePerfEntry === 'function') {
     const entry = self.createPerfEntry({ emailsCount: emails.length, rulesCount: rules.length, matchChecks, ruleMatches, processedCount, durationMs });
     await self.storePerfEntry(entry);
+  }
+  // Persist updated rule stats if any rule matched
+  if (matchedRuleIdsThisRun.size > 0) {
+    try {
+      await chrome.storage.local.set({ rules });
+    } catch (e) {
+      console.warn('Failed to persist updated rule stats', e);
+    }
   }
   return { success: true, processed: processedCount, durationMs, matchChecks, ruleMatches };
 }

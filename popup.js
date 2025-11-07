@@ -172,6 +172,7 @@ function renderRules() {
           <button class="btn btn-icon" onclick="deleteRule('${rule.id}')">🗑️</button>
         </div>
       </div>
+      ${renderRuleStats(rule)}
       
       ${renderRulePatterns(rule)}
       ${renderRuleActions(rule)}
@@ -226,6 +227,12 @@ function renderRuleActions(rule) {
       Actions: ${escapeHtml(actionsList.join(', '))}
     </div>
   `;
+}
+
+function renderRuleStats(rule) {
+  if (!rule.stats) return '';
+  const last = rule.stats.lastMatched ? formatDate(new Date(rule.stats.lastMatched)) : 'Never';
+  return `<div class="rule-stats" style="font-size:11px; color:#555; margin:4px 0;">Matches: ${rule.stats.count || 0} | Last: ${last}</div>`;
 }
 
 // Save rule
