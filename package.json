@@ -17,6 +17,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/gmail-regex-manager"
-  }
+    "url": "https://github.com/guberm/gmail-regex-manager"
+  },
+  "bugs": {
+    "url": "https://github.com/guberm/gmail-regex-manager/issues"
+  },
+  "homepage": "https://github.com/guberm/gmail-regex-manager#readme"
 }
