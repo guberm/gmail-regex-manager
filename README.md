@@ -11,6 +11,7 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
 - Match emails by recipient (To)
 - Match emails by subject
 - Match emails by body/snippet
+- **Live Regex Helper** - Test patterns in real-time as you type
 
 🎯 **Automated Actions**
 - Add or remove labels
@@ -23,13 +24,22 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
 ⚡ **Real-Time Monitoring**
 - Automatically detects new emails in Gmail
 - Processes emails as they arrive
-- Works in the background
+- **Configurable scan interval** (1-60 minutes)
+- Works in the background with retry logic
 
 🎨 **User-Friendly Interface**
 - Easy rule creation and management
+- **Drag & drop rule reordering** to set priority
 - Test rules before applying
 - Enable/disable rules individually
+- **Per-rule match statistics** (count & last matched)
 - Visual feedback and status
+
+📊 **Performance & Observability**
+- **Stats tab** with processing metrics
+- **Configurable retention** (5-500 entries)
+- **Adjustable log levels** (error/warn/info/debug)
+- Import/export rules for backup/sharing
 
 ## Installation
 
@@ -95,12 +105,37 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
    - **From Pattern**: Regex to match sender email
    - **Subject Pattern**: Regex to match subject line
    - **Body Pattern**: Regex to match email content
+   - **Live Regex Helper**: Type sample values below each pattern to see live matches
 5. Choose actions:
    - Add labels (comma-separated)
    - Mark as read
    - Archive
    - etc.
 6. Click "Save Rule"
+
+### Live Regex Helper
+
+The Create Rule tab includes a live testing panel:
+- Enter sample From, To, Subject, and Body values
+- As you type patterns, see instant feedback
+- ✔ Green = pattern matches sample
+- ✖ Red = pattern doesn't match
+- Yellow = regex syntax error
+- Empty pattern fields show as gray "—"
+
+This helps you validate patterns before saving the rule.
+
+### Rule Priority & Ordering
+
+Rules are evaluated in the order shown on the Rules tab. **Drag and drop** rules using the ☰ handle to reorder them. Higher priority rules run first. Reordering is saved automatically.
+
+### Per-Rule Statistics
+
+Each rule card displays:
+- **Matches**: Total number of times the rule has matched
+- **Last**: Timestamp of the most recent match
+
+Statistics help you understand which rules are actively processing emails.
 
 ### Example Rules
 
@@ -156,12 +191,28 @@ Actions: Add Label "GitHub", Archive
 3. Click "Test Against All Rules"
 4. See which rules would match your test email
 
+### Settings
+
+The top of the popup includes configuration options:
+
+- **Auto-process emails**: Toggle to enable/disable automatic processing
+- **Log Level**: Choose verbosity (error, warn, info, debug)
+- **Processing Interval**: Set scan frequency in minutes (minimum 1 minute due to Chrome alarm API limits)
+  - Lower values = more responsive but higher CPU/network usage
+  - Default: 1 minute
+- **Perf Retention**: Maximum number of performance entries to store (5-500)
+  - Default: 50 entries
+
+Interval changes take effect immediately and reschedule the background alarm.
+
 ## How It Works
 
 1. **Content Script**: Monitors Gmail webpage for new emails using DOM observation
-2. **Background Service Worker**: Processes emails and applies rules via Gmail API
-3. **Storage**: Rules are stored locally using Chrome's storage API
-4. **Gmail API**: Applies actions (labels, read status, etc.) to matched emails
+2. **Background Service Worker**: Processes emails and applies rules via Gmail API with exponential backoff retry logic
+3. **Storage**: Rules and settings are stored locally using Chrome's storage API
+4. **Gmail API**: Applies actions (labels, read status, etc.) to matched emails with automatic label creation
+5. **Performance Tracking**: Records metrics for each processing run (configurable retention)
+6. **Logging**: Structured logging with adjustable verbosity levels
 
 ## Permissions
 
@@ -205,11 +256,28 @@ gmail-regex-manager/
 ├── content.js            # Gmail page monitor
 ├── popup.html            # Extension popup UI
 ├── popup.css             # Popup styles
-├── popup.js              # Popup logic
+├── popup.js              # Popup logic (includes drag & drop, stats, regex helper)
+├── gmailActions.js       # Gmail API action helpers with retry logic
+├── perf.js               # Performance tracking utilities
+├── logger.js             # Structured logging utility
+├── rules.js              # Rule matching logic (testable)
 ├── icons/                # Extension icons
 │   ├── icon16.png
 │   ├── icon48.png
 │   └── icon128.png
+├── tests/unit/           # Jest unit tests
+│   ├── perf.test.js
+│   └── gmailActions.test.js
+├── scripts/              # Build and automation scripts
+│   ├── test-rules.js     # Offline rule testing harness
+│   └── release.js        # Version bump & release helper
+├── examples/             # Sample data for testing
+│   ├── rules-sample.json
+│   └── emails-sample.json
+├── .github/workflows/    # CI/CD workflows
+│   ├── validate.yml      # Extension validation
+│   ├── ci.yml            # Test & lint
+│   └── package.yml       # Package & release
 └── README.md             # This file
 ```
 
@@ -233,11 +301,19 @@ gmail-regex-manager/
 ### Offline Rule Testing
 ### Automated Tests
 
-Jest tests live under `__tests__/`. Run (after installing dev dependencies locally):
+Jest tests live under `tests/unit/`. Run (after installing dev dependencies locally):
 ```powershell
 npm install
-npx jest
+npm test
 ```
+
+Tests cover:
+- Performance entry creation and storage
+- Gmail API retry logic with exponential backoff
+- Label creation and retrieval
+- Rule matching logic
+
+CI runs tests automatically on push/PR via `.github/workflows/ci.yml`.
 
 ### Import / Export Rules
 
@@ -269,7 +345,7 @@ Rule object shape:
 
 ### Performance Metrics & Stats Tab
 
-Processing performance entries are stored in `chrome.storage.local` under `perfStats` (last 50). Each entry:
+Processing performance entries are stored in `chrome.storage.local` under `perfStats` (configurable retention: 5-500 entries, default 50). Each entry:
 ```json
 {
   "timestamp": 1730956800000,
@@ -284,10 +360,11 @@ Processing performance entries are stored in `chrome.storage.local` under `perfS
 You can inspect via the DevTools console in the service worker: 
 ```js
 chrome.storage.local.get(['perfStats'], x => console.log(x.perfStats));
+```
 
 #### Stats Tab
 
-Open the new Stats tab in the popup to view a table of the last 50 runs with:
+Open the Stats tab in the popup to view a table of recent runs with:
 - Time of run
 - Emails scanned
 - Rules count
@@ -297,8 +374,8 @@ Open the new Stats tab in the popup to view a table of the last 50 runs with:
 - Duration (ms)
 
 Buttons:
-- Refresh: Reload data
-- Clear: Remove all stored performance entries
+- **Refresh**: Reload data
+- **Clear**: Remove all stored performance entries
 
 Summary line shows entry count, average duration, and total processed across runs.
 
@@ -371,11 +448,18 @@ git push && git push --tags
 
 - [x] Import/export rules
 - [x] Rule execution statistics (Stats tab)
-- [ ] Advanced regex builder
+- [x] Rule priority/ordering (drag & drop)
+- [x] Live regex helper
+- [x] Configurable processing interval
+- [x] Retry logic with exponential backoff
+- [x] Per-rule match statistics
+- [x] Structured logging
+- [ ] Advanced regex builder UI
 - [ ] Email templates for responses
-- [ ] Scheduled rule execution
-- [ ] Rule priority/ordering
+- [ ] Scheduled rule execution (time-based)
 - [ ] Full email body search via API
+- [ ] Rule groups/folders
+- [ ] Conditional actions (if/then logic)
 
 ## License
 
