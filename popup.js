@@ -28,6 +28,21 @@ function setupEventListeners() {
   // Auth button
   document.getElementById('authBtn').addEventListener('click', authenticate);
 
+  // Help button
+  document.getElementById('helpBtn')?.addEventListener('click', () => {
+    alert(`Keyboard Shortcuts:
+    
+Ctrl+N - New Rule (jump to Create tab)
+Ctrl+T - Test Rules (jump to Test tab)
+Ctrl+S - Save current rule
+Esc - Cancel rule editing
+
+Tips:
+• Drag rules by the ☰ handle to reorder
+• Use Live Regex Helper to test patterns
+• Check Stats tab for performance metrics`);
+  });
+
   // Enable/disable toggle
   document.getElementById('enabledToggle').addEventListener('change', (e) => {
     updateSettings({ enabled: e.target.checked });
@@ -71,8 +86,10 @@ function setupEventListeners() {
   // Stats buttons
   const refreshBtn = document.getElementById('refreshStatsBtn');
   const clearBtn = document.getElementById('clearStatsBtn');
+  const copyBtn = document.getElementById('copyStatsBtn');
   if (refreshBtn) refreshBtn.addEventListener('click', renderStats);
   if (clearBtn) clearBtn.addEventListener('click', clearStats);
+  if (copyBtn) copyBtn.addEventListener('click', copyStatsToClipboard);
 
   // Settings controls
   const intervalInput = document.getElementById('processingInterval');
@@ -641,6 +658,26 @@ async function clearStats() {
   await chrome.storage.local.set({ perfStats: [] });
   renderStats();
   showSuccess('Stats cleared');
+}
+
+async function copyStatsToClipboard() {
+  try {
+    const { perfStats } = await chrome.storage.local.get(['perfStats']);
+    const stats = perfStats || [];
+    if (stats.length === 0) {
+      showError('No stats to copy');
+      return;
+    }
+    const text = stats.map(e => {
+      const d = new Date(e.timestamp);
+      return `${d.toLocaleString()}\t${e.emails}\t${e.rules}\t${e.matchChecks}\t${e.ruleMatches}\t${e.processedCount}\t${e.durationMs}`;
+    }).join('\n');
+    const header = 'Time\tEmails\tRules\tChecks\tMatches\tProcessed\tDuration(ms)\n';
+    await navigator.clipboard.writeText(header + text);
+    showSuccess('Stats copied to clipboard');
+  } catch (e) {
+    showError('Failed to copy: ' + e.message);
+  }
 }
 
 // Live Regex Helper
