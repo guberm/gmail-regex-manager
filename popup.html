@@ -34,6 +34,7 @@
       <button class="tab-btn" data-tab="create">Create Rule</button>
       <button class="tab-btn" data-tab="test">Test</button>
   <button class="tab-btn" data-tab="importexport">Import/Export</button>
+      <button class="tab-btn" data-tab="stats">Stats</button>
     </div>
 
     <div class="tab-content active" id="rulesTab">
@@ -173,6 +174,32 @@
         <input type="file" id="importFile" accept="application/json" />
         <button id="importRulesBtn" class="btn btn-primary" disabled>Import Rules</button>
         <div id="importStatus" class="help-text" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="statsTab">
+      <h2>Performance Stats</h2>
+      <p class="help-text">Recent processing performance (last 50 runs).</p>
+      <div class="form-section">
+        <button id="refreshStatsBtn" class="btn btn-small">Refresh</button>
+        <button id="clearStatsBtn" class="btn btn-secondary btn-small">Clear</button>
+      </div>
+      <div id="statsSummary" class="help-text" style="margin:8px 0;"></div>
+      <div style="max-height:180px; overflow:auto; border:1px solid #ccc; border-radius:4px;">
+        <table id="statsTable" style="width:100%; font-size:12px; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:4px; border-bottom:1px solid #ddd;">Time</th>
+              <th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">Emails</th>
+              <th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">Rules</th>
+              <th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">Checks</th>
+              <th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">Matches</th>
+              <th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">Processed</th>
+              <th style="text-align:right; padding:4px; border-bottom:1px solid #ddd;">ms</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
 

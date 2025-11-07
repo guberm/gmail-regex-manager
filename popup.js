@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadRules();
   setupEventListeners();
   checkAuthStatus();
+  // If stats tab exists, preload summary
+  if (document.getElementById('statsTab')) {
+    await renderStats();
+  }
 });
 
 // Setup event listeners
@@ -57,6 +61,12 @@ function setupEventListeners() {
     }
   });
   importBtn.addEventListener('click', importRules);
+
+  // Stats buttons
+  const refreshBtn = document.getElementById('refreshStatsBtn');
+  const clearBtn = document.getElementById('clearStatsBtn');
+  if (refreshBtn) refreshBtn.addEventListener('click', renderStats);
+  if (clearBtn) clearBtn.addEventListener('click', clearStats);
 }
 
 // Switch tabs
@@ -68,6 +78,9 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(content => {
     content.classList.toggle('active', content.id === `${tabName}Tab`);
   });
+  if (tabName === 'stats') {
+    renderStats();
+  }
 }
 
 // Check authentication status
@@ -474,13 +487,61 @@ async function importRules(){
     }));
     const { rules } = await chrome.storage.local.get(['rules']);
     const existing = rules || [];
-    const merged = [...existing, ...sanitized];
+    // Deduplicate by id, skip duplicates
+    let added = 0, skipped = 0;
+    const existingIds = new Set(existing.map(r => r.id));
+    const deduped = [];
+    for (const rule of sanitized) {
+      if (existingIds.has(rule.id)) { skipped++; continue; }
+      existingIds.add(rule.id); deduped.push(rule); added++;
+    }
+    const merged = existing.concat(deduped);
     await chrome.storage.local.set({ rules: merged });
-    showSuccess(`Imported ${sanitized.length} rules`);
-    document.getElementById('importStatus').textContent = 'Import complete';
+    showSuccess(`Imported ${added} rules (skipped ${skipped} duplicates)`);
+    document.getElementById('importStatus').textContent = `Import complete: added ${added}, skipped ${skipped}`;
     await loadRules();
     switchTab('rules');
   } catch(e){
     showError('Failed to import: ' + e.message);
   }
+}
+
+// Stats rendering
+async function renderStats() {
+  try {
+    const { perfStats } = await chrome.storage.local.get(['perfStats']);
+    const stats = perfStats || [];
+    const tbody = document.querySelector('#statsTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = stats.slice().reverse().map(entry => {
+      const d = new Date(entry.timestamp);
+      return `<tr>
+        <td style="padding:4px; border-bottom:1px solid #eee;">${d.toLocaleTimeString()}</td>
+        <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">${entry.emails}</td>
+        <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">${entry.rules}</td>
+        <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">${entry.matchChecks}</td>
+        <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">${entry.ruleMatches}</td>
+        <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">${entry.processedCount}</td>
+        <td style="padding:4px; border-bottom:1px solid #eee; text-align:right;">${entry.durationMs}</td>
+      </tr>`;
+    }).join('');
+    const summary = document.getElementById('statsSummary');
+    if (summary) {
+      if (stats.length === 0) {
+        summary.textContent = 'No performance data collected yet.';
+      } else {
+        const avgMs = (stats.reduce((a, e) => a + e.durationMs, 0) / stats.length).toFixed(2);
+        const totalProcessed = stats.reduce((a, e) => a + e.processedCount, 0);
+        summary.textContent = `Entries: ${stats.length} | Avg ms: ${avgMs} | Total processed: ${totalProcessed}`;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to render stats', e);
+  }
+}
+
+async function clearStats() {
+  await chrome.storage.local.set({ perfStats: [] });
+  renderStats();
+  showSuccess('Stats cleared');
 }
