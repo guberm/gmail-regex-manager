@@ -1,6 +1,7 @@
 # Gmail Regex Rules Manager
 
-![Validate Extension Workflow](https://github.com/guberm/gmail-regex-manager/actions/workflows/validate.yml/badge.svg)
+![Validate Extension](https://github.com/guberm/gmail-regex-manager/actions/workflows/validate.yml/badge.svg)
+![CI Tests](https://github.com/guberm/gmail-regex-manager/actions/workflows/ci.yml/badge.svg)
 
 A powerful Chrome extension that automatically manages your Gmail emails using regex-based rules. Set up custom patterns to automatically label, archive, mark as read, and perform other actions on incoming emails.
 
