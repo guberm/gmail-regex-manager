@@ -267,7 +267,7 @@ Rule object shape:
 }
 ```
 
-### Performance Metrics
+### Performance Metrics & Stats Tab
 
 Processing performance entries are stored in `chrome.storage.local` under `perfStats` (last 50). Each entry:
 ```json
@@ -284,6 +284,32 @@ Processing performance entries are stored in `chrome.storage.local` under `perfS
 You can inspect via the DevTools console in the service worker: 
 ```js
 chrome.storage.local.get(['perfStats'], x => console.log(x.perfStats));
+
+#### Stats Tab
+
+Open the new Stats tab in the popup to view a table of the last 50 runs with:
+- Time of run
+- Emails scanned
+- Rules count
+- Match checks performed
+- Rule matches
+- Emails processed (actions applied)
+- Duration (ms)
+
+Buttons:
+- Refresh: Reload data
+- Clear: Remove all stored performance entries
+
+Summary line shows entry count, average duration, and total processed across runs.
+
+#### Release Script
+
+Use the release helper to bump version, update `manifest.json`, update `package.json`, append a CHANGELOG entry, commit, and tag:
+```powershell
+npm run release -- patch "Improve stats UI and dedupe imports"
+git push && git push --tags
+```
+Levels: `major | minor | patch`.
 ```
 
 ### Packaging Workflow
@@ -343,8 +369,8 @@ git push && git push --tags
 
 ## Future Enhancements
 
-- [ ] Import/export rules
-- [ ] Rule execution statistics
+- [x] Import/export rules
+- [x] Rule execution statistics (Stats tab)
 - [ ] Advanced regex builder
 - [ ] Email templates for responses
 - [ ] Scheduled rule execution

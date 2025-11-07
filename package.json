@@ -5,7 +5,8 @@
   "scripts": {
     "build": "echo Extension ready for loading in Chrome",
     "test": "echo Use the Test tab in the extension popup to test rules",
-    "bump": "node scripts/bump-version.js"
+    "bump": "node scripts/bump-version.js",
+    "release": "node scripts/release.js"
   },
   "keywords": [
     "gmail",
