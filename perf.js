@@ -13,8 +13,9 @@ function createPerfEntry(context) {
 }
 async function storePerfEntry(entry) {
   try {
-    const { perfStats } = await chrome.storage.local.get(['perfStats']);
-    const updated = (perfStats || []).concat(entry).slice(-50);
+    const { perfStats, settings } = await chrome.storage.local.get(['perfStats','settings']);
+    const limit = Math.max(5, Math.min(500, settings?.perfRetentionLimit || 50));
+    const updated = (perfStats || []).concat(entry).slice(-limit);
     await chrome.storage.local.set({ perfStats: updated });
     return { success: true };
   } catch (e) {

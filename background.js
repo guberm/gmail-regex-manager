@@ -3,15 +3,25 @@
 let authToken = null;
 let isMonitoring = false;
 
+// Helper: schedule alarm based on settings
+async function scheduleAlarmFromSettings() {
+  try {
+    const { settings } = await chrome.storage.local.get(['settings']);
+    const interval = Math.max(1, settings?.processingIntervalMinutes || settings?.checkInterval || 1); // Chrome minimum 1 minute
+    await chrome.alarms.clear('checkGmail');
+    chrome.alarms.create('checkGmail', { periodInMinutes: interval });
+    if (self.appLogger) self.appLogger.log('info', `Alarm scheduled every ${interval} min`);
+  } catch(e) {
+    if (self.appLogger) self.appLogger.log('warn','Failed scheduling alarm', e);
+  }
+}
+
 // Initialize on install
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Gmail Regex Manager installed');
   
-  // Set up periodic check alarm (every 1 minute)
-  chrome.alarms.create('checkGmail', { periodInMinutes: 1 });
-  
   // Initialize default settings
-  chrome.storage.local.get(['rules', 'settings'], (result) => {
+  chrome.storage.local.get(['rules', 'settings'], async (result) => {
     if (!result.rules) {
       chrome.storage.local.set({ rules: [] });
     }
@@ -19,13 +29,19 @@ chrome.runtime.onInstalled.addListener(() => {
       chrome.storage.local.set({ 
         settings: { 
           enabled: true,
-          checkInterval: 1,
+          checkInterval: 1, // legacy
+          processingIntervalMinutes: 1,
+          perfRetentionLimit: 50,
           lastChecked: null
         } 
       });
     }
+    await scheduleAlarmFromSettings();
   });
 });
+
+// Also schedule on service worker startup (fresh session)
+scheduleAlarmFromSettings();
 
 // Listen for alarms
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -47,6 +63,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   } else if (request.action === 'getAuthToken') {
     getAuthToken().then(sendResponse);
+    return true;
+  } else if (request.action === 'rescheduleInterval') {
+    // Update settings then reschedule
+    chrome.storage.local.get(['settings'], async ({ settings }) => {
+      const updated = { ...settings, processingIntervalMinutes: Math.max(1, request.minutes) };
+      await chrome.storage.local.set({ settings: updated });
+      await scheduleAlarmFromSettings();
+      sendResponse({ success: true });
+    });
     return true;
   }
 });
@@ -191,10 +216,9 @@ async function matchesRule(email, rule) {
   }
 }
 
-// Apply rule actions to email
-
 // Test rule function
 async function testRule(rule, email) {
   const matches = await matchesRule(email, rule);
   return { matches };
 }
+

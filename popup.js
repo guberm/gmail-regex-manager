@@ -5,9 +5,11 @@ let editingRuleId = null;
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
+  initSettingsControls();
   await loadRules();
   setupEventListeners();
   checkAuthStatus();
+  initRegexHelper();
   // If stats tab exists, preload summary
   if (document.getElementById('statsTab')) {
     await renderStats();
@@ -71,6 +73,43 @@ function setupEventListeners() {
   const clearBtn = document.getElementById('clearStatsBtn');
   if (refreshBtn) refreshBtn.addEventListener('click', renderStats);
   if (clearBtn) clearBtn.addEventListener('click', clearStats);
+
+  // Settings controls
+  const intervalInput = document.getElementById('processingInterval');
+  const retentionInput = document.getElementById('perfRetention');
+  if (intervalInput) {
+    intervalInput.addEventListener('change', () => {
+      let val = parseFloat(intervalInput.value);
+      if (isNaN(val) || val <= 0) val = 1;
+      // Chrome alarms minimum is 1 minute; clamp
+      if (val < 1) val = 1;
+      updateSettings({ processingIntervalMinutes: val });
+      // Ask background to reschedule
+      chrome.runtime.sendMessage({ action: 'rescheduleInterval', minutes: val });
+    });
+  }
+  if (retentionInput) {
+    retentionInput.addEventListener('change', () => {
+      let val = parseInt(retentionInput.value, 10);
+      if (isNaN(val) || val < 5) val = 5;
+      if (val > 500) val = 500;
+      updateSettings({ perfRetentionLimit: val });
+    });
+  }
+}
+
+function initSettingsControls() {
+  const intervalInput = document.getElementById('processingInterval');
+  const retentionInput = document.getElementById('perfRetention');
+  chrome.storage.local.get(['settings'], ({ settings }) => {
+    if (!settings) return;
+    if (intervalInput && typeof settings.processingIntervalMinutes === 'number') {
+      intervalInput.value = settings.processingIntervalMinutes;
+    }
+    if (retentionInput && typeof settings.perfRetentionLimit === 'number') {
+      retentionInput.value = settings.perfRetentionLimit;
+    }
+  });
 }
 
 // Switch tabs
@@ -133,6 +172,12 @@ async function loadSettings() {
     }
     if (settings.logLevel && document.getElementById('logLevelSelect')) {
       document.getElementById('logLevelSelect').value = settings.logLevel;
+    }
+    if (typeof settings.processingIntervalMinutes === 'number' && document.getElementById('processingInterval')) {
+      document.getElementById('processingInterval').value = settings.processingIntervalMinutes;
+    }
+    if (typeof settings.perfRetentionLimit === 'number' && document.getElementById('perfRetention')) {
+      document.getElementById('perfRetention').value = settings.perfRetentionLimit;
     }
   }
 }
@@ -596,4 +641,80 @@ async function clearStats() {
   await chrome.storage.local.set({ perfStats: [] });
   renderStats();
   showSuccess('Stats cleared');
+}
+
+// Live Regex Helper
+function initRegexHelper() {
+  const fromPatternEl = document.getElementById('fromPattern');
+  const toPatternEl = document.getElementById('toPattern');
+  const subjectPatternEl = document.getElementById('subjectPattern');
+  const bodyPatternEl = document.getElementById('bodyPattern');
+  const sampleFromEl = document.getElementById('sampleFrom');
+  const sampleToEl = document.getElementById('sampleTo');
+  const sampleSubjectEl = document.getElementById('sampleSubject');
+  const sampleBodyEl = document.getElementById('sampleBody');
+  const statusEl = document.getElementById('regexMatchStatus');
+  if (!statusEl) return; // Helper panel not present
+
+  const patternEls = [fromPatternEl, toPatternEl, subjectPatternEl, bodyPatternEl];
+  const sampleEls = [sampleFromEl, sampleToEl, sampleSubjectEl, sampleBodyEl];
+  patternEls.concat(sampleEls).forEach(el => {
+    if (!el) return;
+    el.addEventListener('input', evaluatePatterns);
+  });
+
+  function evaluatePatterns() {
+    const rows = [];
+    addRow('From', fromPatternEl?.value, sampleFromEl?.value);
+    addRow('To', toPatternEl?.value, sampleToEl?.value);
+    addRow('Subject', subjectPatternEl?.value, sampleSubjectEl?.value);
+    addRow('Body', bodyPatternEl?.value, sampleBodyEl?.value);
+    render(rows);
+  }
+
+  function addRow(label, pattern, sample) {
+    if (!pattern) {
+      rows.push({ label, state: 'empty', detail: '—' });
+      return;
+    }
+    let re;
+    try {
+      re = new RegExp(pattern, 'i');
+    } catch (e) {
+      rows.push({ label, state: 'error', detail: e.message });
+      return;
+    }
+    const matched = sample ? re.test(sample) : false;
+    rows.push({ label, state: matched ? 'match' : 'no-match', detail: matched ? '✔' : '✖' });
+  }
+
+  function render(rows) {
+    statusEl.innerHTML = '';
+    rows.forEach(r => {
+      const div = document.createElement('div');
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.border = '1px solid var(--border-color)';
+      div.style.padding = '4px 6px';
+      div.style.marginBottom = '4px';
+      div.style.borderRadius = '4px';
+      if (r.state === 'match') {
+        div.style.background = '#e6ffed';
+        div.style.color = '#055d20';
+      } else if (r.state === 'no-match') {
+        div.style.background = '#ffecec';
+        div.style.color = '#7d0b0b';
+      } else if (r.state === 'error') {
+        div.style.background = '#fff4e5';
+        div.style.color = '#8a5a00';
+      } else {
+        div.style.opacity = '0.6';
+      }
+      div.innerHTML = `<strong>${r.label}</strong><span>${escapeHtml(r.detail)}</span>`;
+      statusEl.appendChild(div);
+    });
+  }
+
+  // Initial render
+  evaluatePatterns();
 }
