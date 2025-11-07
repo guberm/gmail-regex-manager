@@ -230,6 +230,39 @@ gmail-regex-manager/
 4. Test your changes
 
 ### Debugging
+### Offline Rule Testing
+
+You can evaluate rules against sample emails outside Chrome using the Node test harness.
+
+Sample data lives in `examples/`:
+- `examples/rules-sample.json`
+- `examples/emails-sample.json`
+
+Run harness (JSON output):
+```powershell
+node scripts/test-rules.js --rules examples/rules-sample.json --emails examples/emails-sample.json
+```
+
+Compact summary:
+```powershell
+node scripts/test-rules.js --rules examples/rules-sample.json --emails examples/emails-sample.json --compact
+```
+
+Single inline email:
+```powershell
+node scripts/test-rules.js --rules examples/rules-sample.json --email '{"from":"billing@vendor.com","subject":"Payment Receipt"}' --compact
+```
+
+Version bump helper:
+```powershell
+npm run bump -- 1.1.0
+```
+
+Add `--tag` to auto commit & tag:
+```powershell
+npm run bump -- 1.1.0 --tag
+git push && git push --tags
+```
 
 - Background script: `chrome://extensions/` > Click "service worker"
 - Content script: Open Gmail, press F12, check Console

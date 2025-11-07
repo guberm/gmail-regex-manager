@@ -1,0 +1,26 @@
+[
+  {
+    "from": "updates@newsletter.com",
+    "to": "user@example.com",
+    "subject": "Weekly Newsletter Digest",
+    "body": "Here is your weekly update with highlights."
+  },
+  {
+    "from": "notifications@github.com",
+    "to": "user@example.com",
+    "subject": "[repo] Issue assigned to you",
+    "body": "Issue #42 has been assigned."
+  },
+  {
+    "from": "billing@vendor.com",
+    "to": "user@example.com",
+    "subject": "Payment Receipt #12345",
+    "body": "Thank you, invoice payment received."
+  },
+  {
+    "from": "random@sender.com",
+    "to": "user@example.com",
+    "subject": "Hello there",
+    "body": "Just saying hi."
+  }
+]

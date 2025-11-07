@@ -1,0 +1,36 @@
+[
+  {
+    "id": "rule_newsletters",
+    "name": "Newsletter Filter",
+    "enabled": true,
+    "fromPattern": ".*@newsletter\\.com|.*@marketing\\..*",
+    "subjectPattern": "(update|newsletter|digest)",
+    "actions": {
+      "addLabels": ["Newsletters"],
+      "markAsRead": true,
+      "archive": true
+    }
+  },
+  {
+    "id": "rule_github",
+    "name": "GitHub Notifications",
+    "enabled": true,
+    "fromPattern": "notifications@github\\.com",
+    "subjectPattern": "^\\[.*\\]",
+    "actions": {
+      "addLabels": ["GitHub"],
+      "archive": true
+    }
+  },
+  {
+    "id": "rule_finance",
+    "name": "Invoice Detector",
+    "enabled": true,
+    "subjectPattern": "(invoice|receipt|payment)",
+    "bodyPattern": "(invoice|payment|bill)",
+    "actions": {
+      "addLabels": ["Finance/Invoices"],
+      "markAsImportant": true
+    }
+  }
+]
