@@ -1,0 +1,182 @@
+[
+  {
+    "id": "rule_newsletters",
+    "name": "Newsletter Filter",
+    "enabled": true,
+    "fromPattern": ".*(newsletter|marketing|updates)@.*",
+    "toPattern": "",
+    "subjectPattern": "",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["Newsletters"],
+      "removeLabels": [],
+      "markAsRead": true,
+      "markAsImportant": false,
+      "star": false,
+      "archive": true,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_urgent",
+    "name": "Urgent Emails",
+    "enabled": true,
+    "fromPattern": "",
+    "toPattern": "",
+    "subjectPattern": "^\\[URGENT\\]|^URGENT:|^\\*\\*URGENT\\*\\*",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["Urgent"],
+      "removeLabels": [],
+      "markAsRead": false,
+      "markAsImportant": true,
+      "star": true,
+      "archive": false,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_github",
+    "name": "GitHub Notifications",
+    "enabled": true,
+    "fromPattern": "notifications@github\\.com",
+    "toPattern": "",
+    "subjectPattern": "^\\[.*\\].*",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["GitHub"],
+      "removeLabels": ["Inbox"],
+      "markAsRead": false,
+      "markAsImportant": false,
+      "star": false,
+      "archive": true,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_invoices",
+    "name": "Invoice Tracker",
+    "enabled": true,
+    "fromPattern": "",
+    "toPattern": "",
+    "subjectPattern": ".*(invoice|receipt|payment|bill).*",
+    "bodyPattern": ".*(invoice|payment|bill|amount due).*",
+    "actions": {
+      "addLabels": ["Finance", "Invoices"],
+      "removeLabels": [],
+      "markAsRead": false,
+      "markAsImportant": true,
+      "star": false,
+      "archive": false,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_social",
+    "name": "Social Media Notifications",
+    "enabled": true,
+    "fromPattern": ".*(facebook|twitter|linkedin|instagram).*@.*",
+    "toPattern": "",
+    "subjectPattern": "",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["Social"],
+      "removeLabels": [],
+      "markAsRead": true,
+      "markAsImportant": false,
+      "star": false,
+      "archive": false,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_spam_cleanup",
+    "name": "Spam Cleanup",
+    "enabled": false,
+    "fromPattern": "",
+    "toPattern": "",
+    "subjectPattern": ".*(viagra|casino|lottery|winner|prize).*",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": [],
+      "removeLabels": [],
+      "markAsRead": true,
+      "markAsImportant": false,
+      "star": false,
+      "archive": false,
+      "trash": true
+    }
+  },
+  {
+    "id": "rule_work_hours",
+    "name": "After Hours Work Email",
+    "enabled": true,
+    "fromPattern": ".*@yourcompany\\.com",
+    "toPattern": "",
+    "subjectPattern": "",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["Work", "After-Hours"],
+      "removeLabels": [],
+      "markAsRead": false,
+      "markAsImportant": false,
+      "star": false,
+      "archive": false,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_boss",
+    "name": "Boss Emails - High Priority",
+    "enabled": true,
+    "fromPattern": "boss@yourcompany\\.com",
+    "toPattern": "",
+    "subjectPattern": "",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["VIP", "Boss"],
+      "removeLabels": [],
+      "markAsRead": false,
+      "markAsImportant": true,
+      "star": true,
+      "archive": false,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_automated",
+    "name": "Automated Reports",
+    "enabled": true,
+    "fromPattern": ".*(noreply|no-reply|automated|donotreply)@.*",
+    "toPattern": "",
+    "subjectPattern": ".*(report|summary|digest|weekly|daily).*",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["Automated", "Reports"],
+      "removeLabels": [],
+      "markAsRead": false,
+      "markAsImportant": false,
+      "star": false,
+      "archive": true,
+      "trash": false
+    }
+  },
+  {
+    "id": "rule_support",
+    "name": "Customer Support",
+    "enabled": true,
+    "fromPattern": ".*(support|help|service)@.*",
+    "toPattern": "",
+    "subjectPattern": ".*\\[Ticket #[0-9]+\\].*",
+    "bodyPattern": "",
+    "actions": {
+      "addLabels": ["Support", "Tickets"],
+      "removeLabels": [],
+      "markAsRead": false,
+      "markAsImportant": false,
+      "star": false,
+      "archive": false,
+      "trash": false
+    }
+  }
+]
