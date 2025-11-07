@@ -1,0 +1,37 @@
+name: Validate Extension
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure manifest exists
+        run: test -f manifest.json
+
+      - name: Validate manifest icons
+        run: |
+          node - <<'EOF'
+          const fs=require('fs');
+          const m=JSON.parse(fs.readFileSync('manifest.json','utf8'));
+          const requiredSizes=['16','48','128'];
+          function ensure(cond,msg){ if(!cond){console.error(msg); process.exit(1);} }
+          ensure(m.manifest_version===3,'manifest_version must be 3');
+          ensure(m.icons,'icons section missing');
+          ensure(m.action && m.action.default_icon,'action.default_icon missing');
+          requiredSizes.forEach(sz=>{
+            const pngPath=`icons/icon${sz}.png`;
+            ensure(fs.existsSync(pngPath),`Missing PNG icon: ${pngPath}`);
+          });
+          console.log('Manifest icon validation passed');
+          EOF
+
+      - name: List files
+        run: ls -R .
