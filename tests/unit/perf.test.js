@@ -1,4 +1,10 @@
-const { createPerfEntry } = require('../../perf.js');
+// Mock self/global for browser context
+global.self = global;
+
+// Load and initialize perf.js
+require('../../perf.js');
+
+const { createPerfEntry } = global.self;
 
 describe('createPerfEntry', () => {
   test('creates entry with rounded duration and correct fields', () => {
