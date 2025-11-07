@@ -1,4 +1,4 @@
-const { createPerfEntry } = require('../perf.js');
+const { createPerfEntry } = require('../../perf.js');
 
 describe('createPerfEntry', () => {
   test('creates entry with rounded duration and correct fields', () => {
