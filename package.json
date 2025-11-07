@@ -24,4 +24,10 @@
     "url": "https://github.com/guberm/gmail-regex-manager/issues"
   },
   "homepage": "https://github.com/guberm/gmail-regex-manager#readme"
+  ,"devDependencies": {
+    "jest": "^29.7.0"
+  }
+  ,"jest": {
+    "testEnvironment": "node"
+  }
 }

@@ -117,19 +117,31 @@ async function processEmailsWithRules(emails) {
   
   let processedCount = 0;
   
+  const startTime = performance.now();
+  let matchChecks = 0;
+  let ruleMatches = 0;
   for (const email of emails) {
     for (const rule of rules) {
       if (!rule.enabled) continue;
-      
+      matchChecks++;
       const matches = await matchesRule(email, rule);
       if (matches) {
+        ruleMatches++;
         await applyRuleActions(email, rule, token);
         processedCount++;
       }
     }
   }
-  
-  return { success: true, processed: processedCount };
+  const durationMs = performance.now() - startTime;
+  try {
+    const { perfStats } = await chrome.storage.local.get(['perfStats']);
+    const entry = { timestamp: Date.now(), emails: emails.length, rules: rules.length, matchChecks, ruleMatches, processedCount, durationMs };
+    const updated = (perfStats || []).concat(entry).slice(-50);
+    await chrome.storage.local.set({ perfStats: updated });
+  } catch (e) {
+    console.warn('Unable to store perf stats', e);
+  }
+  return { success: true, processed: processedCount, durationMs, matchChecks, ruleMatches };
 }
 
 // Check if email matches rule

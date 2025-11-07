@@ -42,6 +42,21 @@ function setupEventListeners() {
 
   // Test rules
   document.getElementById('testRulesBtn').addEventListener('click', testRules);
+
+  // Export rules
+  document.getElementById('exportRulesBtn').addEventListener('click', exportRules);
+  // Import file selection
+  const importFile = document.getElementById('importFile');
+  const importBtn = document.getElementById('importRulesBtn');
+  importFile.addEventListener('change', () => {
+    importBtn.disabled = !importFile.files.length;
+    if(importFile.files.length){
+      document.getElementById('importStatus').textContent = `${importFile.files[0].name} ready to import`;
+    } else {
+      document.getElementById('importStatus').textContent = '';
+    }
+  });
+  importBtn.addEventListener('click', importRules);
 }
 
 // Switch tabs
@@ -414,4 +429,58 @@ function showError(message) {
   document.querySelector('.container').insertBefore(msg, document.querySelector('.container').firstChild);
   
   setTimeout(() => msg.remove(), 5000);
+}
+
+// Export rules to downloadable JSON file
+async function exportRules(){
+  const { rules } = await chrome.storage.local.get(['rules']);
+  const blob = new Blob([JSON.stringify(rules||[], null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rules-export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showSuccess('Rules exported');
+}
+
+// Import rules from selected JSON file
+async function importRules(){
+  const fileInput = document.getElementById('importFile');
+  const file = fileInput.files[0];
+  if(!file){ showError('No file selected'); return; }
+  try {
+    const text = await file.text();
+    const imported = JSON.parse(text);
+    if(!Array.isArray(imported)) { showError('JSON must be an array'); return; }
+    // Basic validation of rule fields
+    const sanitized = imported.filter(r => r && typeof r === 'object').map(r => ({
+      id: r.id || generateId(),
+      name: r.name || 'Imported Rule',
+      enabled: r.enabled !== false,
+      fromPattern: r.fromPattern || '',
+      toPattern: r.toPattern || '',
+      subjectPattern: r.subjectPattern || '',
+      bodyPattern: r.bodyPattern || '',
+      actions: {
+        addLabels: Array.isArray(r.actions?.addLabels) ? r.actions.addLabels : [],
+        removeLabels: Array.isArray(r.actions?.removeLabels) ? r.actions.removeLabels : [],
+        markAsRead: !!r.actions?.markAsRead,
+        markAsImportant: !!r.actions?.markAsImportant,
+        star: !!r.actions?.star,
+        archive: !!r.actions?.archive,
+        trash: !!r.actions?.trash
+      }
+    }));
+    const { rules } = await chrome.storage.local.get(['rules']);
+    const existing = rules || [];
+    const merged = [...existing, ...sanitized];
+    await chrome.storage.local.set({ rules: merged });
+    showSuccess(`Imported ${sanitized.length} rules`);
+    document.getElementById('importStatus').textContent = 'Import complete';
+    await loadRules();
+    switchTab('rules');
+  } catch(e){
+    showError('Failed to import: ' + e.message);
+  }
 }

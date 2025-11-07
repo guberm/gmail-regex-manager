@@ -1,0 +1,28 @@
+name: Package Extension
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create zip
+        run: |
+          mkdir artifact
+          zip -r artifact/gmail-regex-rules-manager.zip . -x "*.git*" -x "node_modules/*" -x "*.DS_Store" -x "package-lock.json" -x "CHANGELOG.md" -x "scripts/test-rules.js" -x "__tests__/*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmail-regex-rules-manager
+          path: artifact/gmail-regex-rules-manager.zip
+
+      - name: Summary
+        run: echo "Packaged extension zip ready for Chrome Web Store upload." >> $GITHUB_STEP_SUMMARY

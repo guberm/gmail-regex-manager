@@ -33,6 +33,7 @@
       <button class="tab-btn active" data-tab="rules">Rules</button>
       <button class="tab-btn" data-tab="create">Create Rule</button>
       <button class="tab-btn" data-tab="test">Test</button>
+  <button class="tab-btn" data-tab="importexport">Import/Export</button>
     </div>
 
     <div class="tab-content active" id="rulesTab">
@@ -159,6 +160,21 @@
       </div>
     </div>
   </div>
+
+    <div class="tab-content" id="importexportTab">
+      <h2>Import / Export Rules</h2>
+      <p class="help-text">Backup your rules or load rules from a JSON file.</p>
+      <div class="form-section">
+        <h3>Export</h3>
+        <button id="exportRulesBtn" class="btn btn-small">Download rules.json</button>
+      </div>
+      <div class="form-section">
+        <h3>Import</h3>
+        <input type="file" id="importFile" accept="application/json" />
+        <button id="importRulesBtn" class="btn btn-primary" disabled>Import Rules</button>
+        <div id="importStatus" class="help-text" style="margin-top:8px;"></div>
+      </div>
+    </div>
 
   <script src="popup.js"></script>
 </body>

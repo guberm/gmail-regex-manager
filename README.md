@@ -231,6 +231,72 @@ gmail-regex-manager/
 
 ### Debugging
 ### Offline Rule Testing
+### Automated Tests
+
+Jest tests live under `__tests__/`. Run (after installing dev dependencies locally):
+```powershell
+npm install
+npx jest
+```
+
+### Import / Export Rules
+
+Use the popup's Import/Export tab:
+- Export: Downloads `rules-export.json` (current rules)
+- Import: Select a JSON array of rules, they are validated and appended
+
+Rule object shape:
+```json
+{
+  "id": "rule_id",
+  "name": "Readable name",
+  "enabled": true,
+  "fromPattern": "regex",
+  "toPattern": "regex",
+  "subjectPattern": "regex",
+  "bodyPattern": "regex",
+  "actions": {
+    "addLabels": ["Label"],
+    "removeLabels": ["Label"],
+    "markAsRead": true,
+    "markAsImportant": false,
+    "star": false,
+    "archive": false,
+    "trash": false
+  }
+}
+```
+
+### Performance Metrics
+
+Processing performance entries are stored in `chrome.storage.local` under `perfStats` (last 50). Each entry:
+```json
+{
+  "timestamp": 1730956800000,
+  "emails": 10,
+  "rules": 12,
+  "matchChecks": 120,
+  "ruleMatches": 4,
+  "processedCount": 4,
+  "durationMs": 37.5
+}
+```
+You can inspect via the DevTools console in the service worker: 
+```js
+chrome.storage.local.get(['perfStats'], x => console.log(x.perfStats));
+```
+
+### Packaging Workflow
+
+GitHub Actions workflow `package.yml` zips the extension when you push a tag (e.g., `v1.1.0`) or run manually. Artifact name: `gmail-regex-rules-manager.zip`.
+
+Manual trigger: GitHub UI → Actions → Package Extension → Run workflow.
+
+Tag trigger example:
+```powershell
+git tag -a v1.1.0 -m "v1.1.0"
+git push origin v1.1.0
+```
 
 You can evaluate rules against sample emails outside Chrome using the Node test harness.
 
