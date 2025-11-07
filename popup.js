@@ -702,14 +702,14 @@ function initRegexHelper() {
 
   function evaluatePatterns() {
     const rows = [];
-    addRow('From', fromPatternEl?.value, sampleFromEl?.value);
-    addRow('To', toPatternEl?.value, sampleToEl?.value);
-    addRow('Subject', subjectPatternEl?.value, sampleSubjectEl?.value);
-    addRow('Body', bodyPatternEl?.value, sampleBodyEl?.value);
+    addRow(rows, 'From', fromPatternEl?.value, sampleFromEl?.value);
+    addRow(rows, 'To', toPatternEl?.value, sampleToEl?.value);
+    addRow(rows, 'Subject', subjectPatternEl?.value, sampleSubjectEl?.value);
+    addRow(rows, 'Body', bodyPatternEl?.value, sampleBodyEl?.value);
     render(rows);
   }
 
-  function addRow(label, pattern, sample) {
+  function addRow(rows, label, pattern, sample) {
     if (!pattern) {
       rows.push({ label, state: 'empty', detail: '—' });
       return;

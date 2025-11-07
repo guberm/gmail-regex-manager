@@ -22,17 +22,17 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath,'utf8'));
 manifest.version = newVersion;
 pkg.version = newVersion;
 
-fs.writeFileSync(manifestPath, JSON.stringify(manifest,null,2)+"\n");
-fs.writeFileSync(pkgPath, JSON.stringify(pkg,null,2)+"\n");
+fs.writeFileSync(manifestPath, JSON.stringify(manifest,null,2)+'\n');
+fs.writeFileSync(pkgPath, JSON.stringify(pkg,null,2)+'\n');
 
 console.log(`Updated manifest.json and package.json to version ${newVersion}`);
 
 if(doTag){
   const { execSync } = require('child_process');
   try {
-    execSync(`git add manifest.json package.json`,{stdio:'inherit'});
-    execSync(`git commit -m \"chore: bump version to v${newVersion}\"`,{stdio:'inherit'});
-    execSync(`git tag -a v${newVersion} -m \"v${newVersion}\"`,{stdio:'inherit'});
+    execSync('git add manifest.json package.json',{stdio:'inherit'});
+    execSync(`git commit -m "chore: bump version to v${newVersion}"`,{stdio:'inherit'});
+    execSync(`git tag -a v${newVersion} -m "v${newVersion}"`,{stdio:'inherit'});
     console.log(`Created annotated tag v${newVersion}`);
   } catch(e){
     die('Failed git operations; ensure git is installed and repo is clean.');

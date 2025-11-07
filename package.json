@@ -31,6 +31,8 @@
     "eslint": "^8.57.0"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "testMatch": ["**/tests/unit/**/*.test.js"]
   }
 }

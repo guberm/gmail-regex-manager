@@ -8,7 +8,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 function readJSON(p){ return JSON.parse(fs.readFileSync(p,'utf8')); }
-function writeJSON(p,obj){ fs.writeFileSync(p, JSON.stringify(obj, null, 2)+"\n"); }
+function writeJSON(p,obj){ fs.writeFileSync(p, JSON.stringify(obj, null, 2)+'\n'); }
 
 function run(cmd){ return execSync(cmd,{stdio:'inherit'}); }
 
@@ -48,7 +48,7 @@ function main(){
   writeJSON(pkgPath, pkg);
   updateManifestVersion(manifestPath, newVersion);
   appendChangelog(changelogPath, newVersion, description);
-  run(`git add package.json manifest.json CHANGELOG.md`);
+  run('git add package.json manifest.json CHANGELOG.md');
   run(`git commit -m "chore(release): v${newVersion}"`);
   run(`git tag -a v${newVersion} -m "Release v${newVersion}"`);
   console.log(`\nRelease v${newVersion} prepared. Run: git push && git push --tags`);
