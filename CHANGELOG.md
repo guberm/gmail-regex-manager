@@ -20,3 +20,7 @@ All notable changes to this project will be documented in this file.
 - Performance tuned for <= 100 rules
 
 [v1.0.0]: https://github.com/guberm/gmail-regex-manager/releases/tag/v1.0.0
+
+## v1.1.0 - 2025-11-07
+
+Add settings controls, live regex helper, and enhanced observability
