@@ -1,47 +1,47 @@
 // Gmail API and rule action helpers extracted from background.js
 async function addLabelsToEmail(messageId, labelNames, token) {
   const labelIds = await getLabelIds(labelNames, token);
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ addLabelIds: labelIds })
   });
 }
 async function removeLabelsFromEmail(messageId, labelNames, token) {
   const labelIds = await getLabelIds(labelNames, token);
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ removeLabelIds: labelIds })
   });
 }
 async function markEmailAsRead(messageId, token) {
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ removeLabelIds: ['UNREAD'] })
   });
 }
 async function markEmailAsImportant(messageId, token) {
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ addLabelIds: ['IMPORTANT'] })
   });
 }
 async function archiveEmail(messageId, token) {
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ removeLabelIds: ['INBOX'] })
   });
 }
 async function trashEmail(messageId, token) {
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
 }
 async function starEmail(messageId, token) {
-  return fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ addLabelIds: ['STARRED'] })
   });
 }
 async function getLabelIds(labelNames, token) {
-  const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/labels', { headers: { 'Authorization': `Bearer ${token}` } });
+  const response = await retryFetch('https://www.googleapis.com/gmail/v1/users/me/labels', { headers: { 'Authorization': `Bearer ${token}` } });
   const data = await response.json();
   const labels = data.labels || [];
   const labelIds = [];
@@ -54,7 +54,7 @@ async function getLabelIds(labelNames, token) {
 }
 async function createLabel(labelName, token) {
   try {
-    const response = await fetch('https://www.googleapis.com/gmail/v1/users/me/labels', {
+  const response = await retryFetch('https://www.googleapis.com/gmail/v1/users/me/labels', {
       method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: labelName, labelListVisibility: 'labelShow', messageListVisibility: 'show' })
     });
@@ -73,6 +73,21 @@ async function applyRuleActions(email, rule, token) {
     if (actions.star) await starEmail(messageId, token);
     console.log(`Applied actions to email: ${email.subject}`);
   } catch (e) { console.error('Error applying rule actions:', e); }
+}
+// Simple retry with exponential backoff for transient network/server errors
+async function retryFetch(url, options, attempts = 3) {
+  let delay = 300;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (!res.ok && res.status >= 500 && i < attempts - 1) throw new Error('Server error ' + res.status);
+      return res;
+    } catch (err) {
+      if (i === attempts - 1) throw err;
+      await new Promise(r => setTimeout(r, delay));
+      delay *= 2;
+    }
+  }
 }
 // expose to background.js
 self.applyRuleActions = applyRuleActions;

@@ -65,10 +65,10 @@ async function authenticateUser() {
     });
     
     authToken = token;
-    console.log('Authentication successful');
+  if (self.appLogger) self.appLogger.log('info','Authentication successful');
     return { success: true, token };
   } catch (error) {
-    console.error('Authentication failed:', error);
+  if (self.appLogger) self.appLogger.log('error','Authentication failed', error);
     return { success: false, error: error.message };
   }
 }
@@ -137,7 +137,7 @@ async function processEmailsWithRules(emails) {
         if (typeof self.applyRuleActions === 'function') {
           await self.applyRuleActions(email, rule, token);
         } else {
-          console.warn('applyRuleActions helper not found');
+        if (self.appLogger) self.appLogger.log('warn','applyRuleActions helper not found');
         }
         processedCount++;
       }
@@ -153,7 +153,7 @@ async function processEmailsWithRules(emails) {
     try {
       await chrome.storage.local.set({ rules });
     } catch (e) {
-      console.warn('Failed to persist updated rule stats', e);
+    if (self.appLogger) self.appLogger.log('warn','Failed to persist updated rule stats', e);
     }
   }
   return { success: true, processed: processedCount, durationMs, matchChecks, ruleMatches };

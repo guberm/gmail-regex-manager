@@ -30,6 +30,10 @@ function setupEventListeners() {
   document.getElementById('enabledToggle').addEventListener('change', (e) => {
     updateSettings({ enabled: e.target.checked });
   });
+  const logLevelSelect = document.getElementById('logLevelSelect');
+  if (logLevelSelect) {
+    logLevelSelect.addEventListener('change', () => updateSettings({ logLevel: logLevelSelect.value }));
+  }
 
   // Add rule button
   document.getElementById('addRuleBtn').addEventListener('click', () => {
@@ -126,6 +130,9 @@ async function loadSettings() {
     if (settings.lastChecked) {
       const lastCheckedDate = new Date(settings.lastChecked);
       document.getElementById('lastChecked').textContent = formatDate(lastCheckedDate);
+    }
+    if (settings.logLevel && document.getElementById('logLevelSelect')) {
+      document.getElementById('logLevelSelect').value = settings.logLevel;
     }
   }
 }
