@@ -138,13 +138,9 @@ async function processEmailsWithRules(emails) {
     }
   }
   const durationMs = performance.now() - startTime;
-  try {
-    const { perfStats } = await chrome.storage.local.get(['perfStats']);
-    const entry = { timestamp: Date.now(), emails: emails.length, rules: rules.length, matchChecks, ruleMatches, processedCount, durationMs };
-    const updated = (perfStats || []).concat(entry).slice(-50);
-    await chrome.storage.local.set({ perfStats: updated });
-  } catch (e) {
-    console.warn('Unable to store perf stats', e);
+  if (typeof self.createPerfEntry === 'function' && typeof self.storePerfEntry === 'function') {
+    const entry = self.createPerfEntry({ emailsCount: emails.length, rulesCount: rules.length, matchChecks, ruleMatches, processedCount, durationMs });
+    await self.storePerfEntry(entry);
   }
   return { success: true, processed: processedCount, durationMs, matchChecks, ruleMatches };
 }
