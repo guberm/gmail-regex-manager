@@ -161,8 +161,9 @@ function renderRules() {
   }
 
   rulesList.innerHTML = currentRules.map((rule, index) => `
-    <div class="rule-item" data-rule-id="${rule.id}">
+    <div class="rule-item" data-rule-id="${rule.id}" draggable="true">
       <div class="rule-header">
+        <span class="drag-handle" title="Drag to reorder">☰</span>
         <div class="rule-name">${escapeHtml(rule.name)}</div>
         <div class="rule-actions">
           <button class="btn btn-icon" onclick="editRule('${rule.id}')">✏️</button>
@@ -183,6 +184,7 @@ function renderRules() {
       </div>
     </div>
   `).join('');
+  initDragAndDrop();
 }
 
 // Render rule patterns
@@ -233,6 +235,42 @@ function renderRuleStats(rule) {
   if (!rule.stats) return '';
   const last = rule.stats.lastMatched ? formatDate(new Date(rule.stats.lastMatched)) : 'Never';
   return `<div class="rule-stats" style="font-size:11px; color:#555; margin:4px 0;">Matches: ${rule.stats.count || 0} | Last: ${last}</div>`;
+}
+
+// Drag & Drop ordering
+function initDragAndDrop() {
+  const container = document.getElementById('rulesList');
+  let dragEl = null;
+  container.querySelectorAll('.rule-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragEl = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      if (dragEl) dragEl.classList.remove('dragging');
+      dragEl = null;
+      persistOrder();
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragEl || dragEl === item) return;
+      const rect = item.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      if (before) {
+        container.insertBefore(dragEl, item);
+      } else {
+        container.insertBefore(dragEl, item.nextSibling);
+      }
+    });
+  });
+}
+
+function persistOrder() {
+  const ids = Array.from(document.querySelectorAll('#rulesList .rule-item')).map(el => el.getAttribute('data-rule-id'));
+  const reordered = ids.map(id => currentRules.find(r => r.id === id)).filter(Boolean);
+  currentRules = reordered;
+  chrome.storage.local.set({ rules: currentRules });
 }
 
 // Save rule
