@@ -40,8 +40,8 @@ async function starEmail(messageId, token) {
     body: JSON.stringify({ addLabelIds: ['STARRED'] })
   });
 }
-async function getLabelIds(labelNames, token) {
-  const response = await retryFetch('https://www.googleapis.com/gmail/v1/users/me/labels', { headers: { 'Authorization': `Bearer ${token}` } });
+async function getLabelIds(labelNames, token, fetchImpl = fetch) {
+  const response = await retryFetch('https://www.googleapis.com/gmail/v1/users/me/labels', { headers: { 'Authorization': `Bearer ${token}` } }, 3, fetchImpl);
   const data = await response.json();
   const labels = data.labels || [];
   const labelIds = [];
@@ -52,12 +52,12 @@ async function getLabelIds(labelNames, token) {
   }
   return labelIds;
 }
-async function createLabel(labelName, token) {
+async function createLabel(labelName, token, fetchImpl = fetch) {
   try {
   const response = await retryFetch('https://www.googleapis.com/gmail/v1/users/me/labels', {
       method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: labelName, labelListVisibility: 'labelShow', messageListVisibility: 'show' })
-    });
+    }, 3, fetchImpl);
     return await response.json();
   } catch (e) { console.error('Error creating label:', e); return null; }
 }
@@ -75,11 +75,11 @@ async function applyRuleActions(email, rule, token) {
   } catch (e) { console.error('Error applying rule actions:', e); }
 }
 // Simple retry with exponential backoff for transient network/server errors
-async function retryFetch(url, options, attempts = 3) {
+async function retryFetch(url, options, attempts = 3, fetchImpl = fetch) {
   let delay = 300;
   for (let i = 0; i < attempts; i++) {
     try {
-      const res = await fetch(url, options);
+      const res = await fetchImpl(url, options);
       if (!res.ok && res.status >= 500 && i < attempts - 1) throw new Error('Server error ' + res.status);
       return res;
     } catch (err) {
