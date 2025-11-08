@@ -279,9 +279,41 @@ This extension automates Gmail email management using user-defined regex-based r
 Required to save user-created email rules, settings, and performance statistics locally in the browser.
 ```
 
+**Detailed Justification for storage:**
+```
+The storage permission is used exclusively to store user configuration data locally in the browser using Chrome's storage.local API. Specifically:
+
+1. User-created regex rules (patterns, actions, enabled/disabled state)
+2. Extension settings (processing interval, log level, performance retention)
+3. Per-rule statistics (match count, last matched timestamp)
+4. Performance metrics (processing times, duration tracking)
+
+All data is stored locally on the user's device. No data is transmitted to external servers. The extension does not access any storage from other extensions or websites. Data can be cleared by the user at any time through the extension's UI or by uninstalling the extension.
+
+Storage usage is minimal (typically < 1MB) and contains only configuration data that the user explicitly creates through the extension's interface.
+```
+
 **identity**
 ```
 Required to authenticate users with their Google account via OAuth 2.0 to access Gmail API with user consent.
+```
+
+**Detailed Justification for identity:**
+```
+The identity permission is required to use Chrome's chrome.identity.getAuthToken() API for OAuth 2.0 authentication with Google. This is necessary because:
+
+1. The extension needs to access Gmail data via the Gmail API
+2. Users must authenticate and explicitly grant permission to access their Gmail
+3. OAuth 2.0 is the secure, industry-standard method for API authentication
+4. Chrome's identity API handles the OAuth flow securely within the browser
+
+Important: Users must configure their own OAuth Client ID (from Google Cloud Console). The extension does not use a shared or developer-controlled Client ID. This means:
+- Each user maintains full control over API access
+- Users can revoke access anytime through Google Account settings
+- No central authentication server is used
+- The developer cannot access user Gmail data
+
+The identity permission is used only for the initial authentication and token refresh. No identity information is stored beyond the OAuth token required for Gmail API access.
 ```
 
 **alarms**
@@ -289,9 +321,47 @@ Required to authenticate users with their Google account via OAuth 2.0 to access
 Required to schedule periodic checks for new emails at user-configured intervals (1-60 minutes) for automatic email processing.
 ```
 
+**Detailed Justification for alarms:**
+```
+The alarms permission is used to schedule periodic background tasks using Chrome's chrome.alarms API. This is essential for the extension's core functionality:
+
+1. Automatically check Gmail for new emails at regular intervals
+2. User configures the check interval (default: 1 minute, range: 1-60 minutes)
+3. When alarm triggers, extension processes new emails against user-defined rules
+4. Alarms persist across browser sessions for continuous automation
+
+The alarms API is specifically designed for extensions that need to perform periodic tasks efficiently without keeping the service worker constantly active, which would drain system resources.
+
+The extension does not use alarms for any other purpose (no tracking, no telemetry, no external network calls). Alarm frequency is fully under user control via the settings UI. Users can disable automatic processing entirely while keeping their rules stored.
+
+Technical note: Chrome enforces a minimum alarm interval of 1 minute for non-packed extensions, and the extension respects this limitation.
+```
+
 **host_permissions - mail.google.com**
 ```
 Required to monitor Gmail interface for new emails and provide real-time processing capabilities.
+```
+
+**Detailed Justification for host_permissions (mail.google.com):**
+```
+This host permission allows the extension to inject a content script into the Gmail web interface. This is required for:
+
+1. Real-time detection of new emails arriving in Gmail
+2. Monitoring the Gmail DOM to identify when emails are added to the inbox
+3. Triggering rule processing when new emails are detected
+4. Providing immediate automation without waiting for the next scheduled alarm
+
+The content script:
+- Only runs on mail.google.com domain (Gmail)
+- Uses read-only DOM observation (MutationObserver API)
+- Does NOT modify Gmail's interface or functionality
+- Does NOT intercept or modify email content
+- Does NOT inject advertisements or tracking code
+- Communicates with the service worker only to trigger rule processing
+
+Without this permission, the extension would have to rely solely on periodic alarms, which would delay email processing by up to 60 minutes. The content script enables near-instant automation when emails arrive.
+
+The content script does not access other Google services or non-Gmail pages.
 ```
 
 **host_permissions - www.googleapis.com**
@@ -299,11 +369,59 @@ Required to monitor Gmail interface for new emails and provide real-time process
 Required to communicate with Gmail API to read email metadata (subject, sender, recipient, body snippets) and perform user-defined actions (add labels, mark as read, star, archive, trash).
 ```
 
+**Detailed Justification for host_permissions (www.googleapis.com):**
+```
+This host permission allows the extension to make API calls to the Gmail API endpoint (www.googleapis.com/gmail/v1/). This is the core functionality of the extension:
+
+API calls made:
+1. GET /gmail/v1/users/me/messages - List emails matching search criteria
+2. GET /gmail/v1/users/me/messages/{id} - Read email metadata (subject, from, to, snippet)
+3. POST /gmail/v1/users/me/messages/{id}/modify - Add/remove labels, read status, star status
+4. GET /gmail/v1/users/me/labels - List available labels
+5. POST /gmail/v1/users/me/labels - Create new labels when needed
+
+Data accessed from emails:
+- Sender email address (From field)
+- Recipient email address (To field)  
+- Subject line
+- Email snippet/preview (first ~200 characters of body)
+- Current labels
+- Read/unread status
+- Star status
+- Important flag
+
+Data NOT accessed:
+- Full email body (only snippets are retrieved)
+- Email attachments
+- Email headers beyond From/To/Subject
+- Contact information
+- Calendar data
+- Drive files
+- Other Google services
+
+All API calls:
+- Use OAuth 2.0 authentication with user-configured credentials
+- Are made only when processing rules (on alarm trigger or new email detection)
+- Are rate-limited to prevent excessive API usage
+- Include retry logic with exponential backoff for reliability
+- Do not send data to any server other than Google's official API endpoints
+
+The extension does not use googleapis.com for any purpose other than Gmail API access. No tracking, analytics, or external service integration.
+
+Required Gmail API scopes (explicitly granted by user during OAuth):
+- gmail.modify: Read and modify email properties
+- gmail.labels: Create and manage labels
+```
+
 ### Privacy Policy URL
 ```
 https://github.com/guberm/gmail-regex-manager/blob/main/PRIVACY.md
 ```
-*Note: You'll need to create this file - see template below*
+
+### Remote Code Justification (if asked)
+```
+This extension does NOT use remote code. All code is packaged within the extension and runs locally in the browser. No external scripts, libraries, or code are loaded at runtime.
+```
 
 ### Data Usage
 
@@ -312,14 +430,180 @@ https://github.com/guberm/gmail-regex-manager/blob/main/PRIVACY.md
 None. The extension does not collect, transmit, or store any user data outside of the user's local browser storage. All email processing happens locally.
 ```
 
+**Detailed Data Collection Statement:**
+```
+The extension collects and processes ZERO user data for external purposes. Specifically:
+
+Data NOT collected:
+- No personal information (name, email address, phone, etc.)
+- No email content beyond what's needed for rule matching
+- No browsing history or activity tracking
+- No location data
+- No device information
+- No user credentials (OAuth tokens are managed by Chrome's identity API)
+- No analytics, telemetry, or usage statistics
+- No crash reports or error logs sent externally
+
+Data that IS accessed (locally only):
+- Email metadata (sender, recipient, subject, snippet) - accessed via Gmail API, evaluated against rules, then discarded
+- User-created rules - stored locally in browser storage
+- Extension settings - stored locally in browser storage
+- Rule statistics (match count, timestamp) - stored locally in browser storage
+
+All accessed data remains on the user's device. The extension has no backend server, no database, and no external data collection infrastructure.
+```
+
 **How is data used?**
 ```
 Email metadata (sender, recipient, subject, body snippets) is read via Gmail API solely to evaluate against user-defined rules and execute automated actions. No data is sent to external servers.
 ```
 
+**Detailed Data Usage Statement:**
+```
+Email data accessed from Gmail API is used exclusively for the following purposes:
+
+1. Pattern Matching:
+   - Email metadata is compared against user-defined regex patterns
+   - Matching happens entirely in the browser's JavaScript runtime
+   - Email data is held in memory only during rule evaluation (seconds)
+   - No email content is persisted to storage
+
+2. Action Execution:
+   - When rules match, the extension calls Gmail API to perform actions
+   - Actions are limited to: add/remove labels, mark read/unread, star/unstar, archive, trash
+   - Actions are performed via authenticated API calls using user's OAuth token
+   - No email content is modified, only metadata/flags
+
+3. Statistics:
+   - Rule match count is incremented (stored locally)
+   - Timestamp of last match is recorded (stored locally)
+   - Processing performance metrics are tracked (stored locally)
+   - No personally identifiable information is included in statistics
+
+Data flow:
+Gmail API → Extension Memory → Rule Evaluation → Gmail API (for actions) → Memory Cleared
+
+Data is NEVER:
+- Sent to external servers
+- Stored permanently (only statistics, not email content)
+- Shared with third parties
+- Used for advertising or profiling
+- Transmitted over network except to/from Gmail API
+- Accessible to other extensions or websites
+```
+
 **Is data shared with third parties?**
 ```
 No. All data remains on the user's device. The extension requires users to configure their own OAuth credentials, ensuring they maintain full control over API access.
+```
+
+**Detailed Data Sharing Statement:**
+```
+The extension shares ZERO data with third parties. Here's the complete picture:
+
+Third-party services used: NONE
+- No analytics services (Google Analytics, etc.)
+- No crash reporting services
+- No advertising networks
+- No social media integrations
+- No content delivery networks (all code is packaged)
+- No backend APIs or web services
+
+Data transmission:
+- ONLY to Google's official Gmail API endpoints (www.googleapis.com/gmail/v1/)
+- Uses user's own OAuth credentials (configured by user)
+- Encrypted in transit (HTTPS)
+- Standard Gmail API authentication and authorization
+
+Developer access:
+- Developer has ZERO access to user data
+- No central authentication server
+- No shared API credentials
+- Each user configures their own OAuth Client ID
+- Users can revoke access anytime via Google Account settings
+
+Open source transparency:
+- Full source code available on GitHub
+- Anyone can verify no external data transmission
+- No obfuscated or minified code in submission
+- All network requests are to Gmail API only
+
+Legal entity data sharing: NONE
+- No sale of data
+- No rental of data
+- No licensing of data
+- No data brokers
+- No marketing partners
+- No affiliate programs involving data
+
+The extension is a purely local tool that interfaces only with Gmail API on behalf of the user.
+```
+
+## Certification and Compliance
+
+### Single Purpose Certification
+```
+This extension has ONE clear purpose: Automate Gmail email management using regex-based rules.
+
+All features directly support this purpose:
+✓ Create rules with regex patterns
+✓ Match emails against patterns
+✓ Execute automated actions (label, archive, star, etc.)
+✓ Monitor Gmail for new emails
+✓ Track rule statistics
+✓ Configure settings
+
+No secondary purposes:
+✗ No browsing history tracking
+✗ No web scraping or data harvesting
+✗ No cryptocurrency mining
+✗ No advertising or marketing
+✗ No social features or sharing
+✗ No unrelated utilities or tools
+```
+
+### User Data Handling Certification
+```
+I certify that:
+1. This extension does NOT collect, transmit, or sell user data
+2. All data processing happens locally in the user's browser
+3. Users configure their own OAuth credentials (no shared credentials)
+4. Email data is accessed only for rule evaluation and action execution
+5. No email content is stored (only user-created rules and statistics)
+6. The extension is open source and independently verifiable
+7. Privacy policy accurately describes all data handling practices
+8. GDPR and CCPA compliance measures are implemented
+9. Users have full control over all data and can delete it anytime
+10. No third-party services receive any user data
+```
+
+### Prohibited Content Certification
+```
+I certify that this extension does NOT contain:
+✗ Malware, viruses, or malicious code
+✗ Deceptive or misleading functionality
+✗ Obfuscated or hidden code
+✗ Remote code execution
+✗ Cryptocurrency mining
+✗ Unauthorized data collection
+✗ Clickjacking or UI redressing
+✗ Spam or unsolicited messaging
+✗ Copyright infringing content
+✗ Adult or explicit content
+✗ Violence or hate speech
+✗ Illegal activities or content
+```
+
+### Manifest V3 Compliance
+```
+This extension fully complies with Chrome Extension Manifest V3:
+✓ Uses service worker (not background page)
+✓ No remotely hosted code
+✓ Declarative permissions model
+✓ Follows best security practices
+✓ Uses chrome.identity for OAuth
+✓ Minimal permissions requested
+✓ All code is reviewable in package
 ```
 
 ## Developer Information
