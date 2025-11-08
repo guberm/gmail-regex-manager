@@ -8,7 +8,8 @@
     "lint": "eslint . --ext .js",
     "bump": "node scripts/bump-version.js",
     "release": "node scripts/release.js",
-    "config": "node scripts/update-client-id.js"
+    "config": "node scripts/update-client-id.js",
+    "package": "node scripts/package-chrome-store.js"
   },
   "keywords": [
     "gmail",
