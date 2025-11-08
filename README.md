@@ -44,6 +44,62 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
 
 ## Installation
 
+> **📋 Important:** This extension requires your own Google OAuth credentials to access Gmail. Follow the setup guide below.
+
+### Quick Setup
+
+1. **Get OAuth Credentials** - Follow our [detailed OAuth setup guide](OAUTH_SETUP.md)
+2. **Configure the extension** - Use the helper script or edit manually
+3. **Load in Chrome** - Install as an unpacked extension
+
+### Method 1: Using the Helper Script (Recommended)
+
+```bash
+# Install dependencies
+npm install
+
+# Configure your OAuth Client ID
+npm run config YOUR_CLIENT_ID.apps.googleusercontent.com
+```
+
+### Method 2: Manual Configuration
+
+1. Download or clone this repository
+2. Open `manifest.json` in a text editor
+3. Find the `oauth2` section at the bottom
+4. Replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your actual Client ID
+
+```json
+"oauth2": {
+  "client_id": "YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com",
+  "scopes": [
+    "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/gmail.labels"
+  ]
+}
+```
+
+### Load Extension in Chrome
+
+1. Open Chrome and go to `chrome://extensions/`
+2. Enable **Developer mode** (toggle in top right)
+3. Click **Load unpacked**
+4. Select the extension folder
+5. Click the extension icon and **Sign In** to authenticate
+
+### Need Help?
+
+- 📖 [Complete OAuth Setup Guide](OAUTH_SETUP.md) - Step-by-step instructions with troubleshooting
+- 🚀 [Quick Start Guide](QUICKSTART.md) - Get started in 5 minutes
+- ❓ Check the [Troubleshooting Guide](TROUBLESHOOTING.md) for common issues
+
+---
+
+### Old Installation Section (For Reference)
+
+<details>
+<summary>Click to expand detailed manual setup</summary>
+
 ### Step 1: Set up Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
@@ -78,6 +134,8 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
   ]
 }
 ```
+
+</details>
 
 ### Step 3: Load the Extension
 

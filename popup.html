@@ -13,9 +13,50 @@
       <div class="auth-status">
         <span id="authStatus">Not authenticated</span>
         <button id="authBtn" class="btn btn-small">Sign In</button>
+        <button id="configBtn" class="btn btn-small" style="margin-left:4px;" title="OAuth Configuration">⚙️</button>
         <button id="helpBtn" class="btn btn-small" style="margin-left:4px;" title="Keyboard shortcuts">❓</button>
       </div>
     </header>
+
+    <!-- OAuth Configuration Modal -->
+    <div id="configModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚙️ OAuth Configuration</h2>
+          <button id="closeConfigModal" class="close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>To use this extension, you need to configure your own Google OAuth Client ID in the <code>manifest.json</code> file.</p>
+          
+          <div class="info-box">
+            <h3>📋 Quick Setup Steps</h3>
+            <ol style="margin-left: 20px; line-height: 1.8;">
+              <li>Get your OAuth Client ID from Google Cloud Console</li>
+              <li>Open the extension folder on your computer</li>
+              <li>Edit <code>manifest.json</code> file</li>
+              <li>Find the <code>"oauth2"</code> section</li>
+              <li>Replace <code>YOUR_CLIENT_ID</code> with your actual Client ID</li>
+              <li>Save the file</li>
+              <li>Reload the extension in <code>chrome://extensions/</code></li>
+              <li>Click "Sign In" to authenticate</li>
+            </ol>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Current Configuration Status</label>
+            <div id="manifestStatus" class="manifest-status">
+              <span id="currentClientId">Loading...</span>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button id="oauthHelpBtn" class="btn btn-primary">� View Full Setup Guide</button>
+            <button id="openExtensionFolderBtn" class="btn btn-secondary">� Open Extension Folder</button>
+          </div>
+          <div id="configStatus" class="config-status" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
 
     <div class="settings-section">
       <div class="toggle-container">

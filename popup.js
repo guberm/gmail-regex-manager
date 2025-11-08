@@ -28,6 +28,33 @@ function setupEventListeners() {
   // Auth button
   document.getElementById('authBtn').addEventListener('click', authenticate);
 
+  // Configuration button
+  document.getElementById('configBtn')?.addEventListener('click', () => {
+    openConfigModal();
+  });
+
+  // Config modal close button
+  document.getElementById('closeConfigModal')?.addEventListener('click', () => {
+    closeConfigModal();
+  });
+
+  // OAuth help button
+  document.getElementById('oauthHelpBtn')?.addEventListener('click', () => {
+    openOAuthHelp();
+  });
+
+  // Open extension folder button
+  document.getElementById('openExtensionFolderBtn')?.addEventListener('click', () => {
+    showConfigStatus('💡 To open the extension folder:\n1. Go to chrome://extensions/\n2. Find "Gmail Regex Rules Manager"\n3. Click "Details"\n4. Look for the extension path\n5. Open that folder in your file explorer', 'info');
+  });
+
+  // Close modal on outside click
+  document.getElementById('configModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'configModal') {
+      closeConfigModal();
+    }
+  });
+
   // Help button
   document.getElementById('helpBtn')?.addEventListener('click', () => {
     alert(`Keyboard Shortcuts:
@@ -754,4 +781,56 @@ function initRegexHelper() {
 
   // Initial render
   evaluatePatterns();
+}
+
+// ===== OAuth Configuration Functions =====
+
+async function openConfigModal() {
+  const modal = document.getElementById('configModal');
+  const statusEl = document.getElementById('currentClientId');
+  
+  // Read the manifest to check current Client ID
+  try {
+    const manifest = chrome.runtime.getManifest();
+    const clientId = manifest.oauth2?.client_id || 'Not configured';
+    
+    if (clientId === 'YOUR_CLIENT_ID.apps.googleusercontent.com' || clientId === 'Not configured') {
+      statusEl.textContent = '⚠️ Not configured - please follow setup steps';
+      statusEl.parentElement.className = 'manifest-status not-configured';
+    } else {
+      statusEl.textContent = `✓ ${clientId}`;
+      statusEl.parentElement.className = 'manifest-status configured';
+    }
+  } catch (error) {
+    statusEl.textContent = 'Error reading manifest';
+    statusEl.parentElement.className = 'manifest-status';
+  }
+  
+  // Hide any previous status
+  const configStatus = document.getElementById('configStatus');
+  if (configStatus) {
+    configStatus.style.display = 'none';
+  }
+  
+  // Show modal
+  modal.style.display = 'flex';
+}
+
+function closeConfigModal() {
+  const modal = document.getElementById('configModal');
+  modal.style.display = 'none';
+}
+
+function showConfigStatus(message, type) {
+  const statusEl = document.getElementById('configStatus');
+  statusEl.textContent = message;
+  statusEl.className = `config-status ${type}`;
+  statusEl.style.display = 'block';
+}
+
+function openOAuthHelp() {
+  // Open the OAuth setup guide in a new tab
+  chrome.tabs.create({
+    url: 'https://github.com/guberm/gmail-regex-manager/blob/main/OAUTH_SETUP.md'
+  });
 }
