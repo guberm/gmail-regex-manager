@@ -1,10 +1,16 @@
 // Gmail API and rule action helpers extracted from background.js
 async function addLabelsToEmail(messageId, labelNames, token) {
   const labelIds = await getLabelIds(labelNames, token);
-  return retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+  if (self.appLogger) self.appLogger.log('info', `Adding labels [${labelNames.join(', ')}] (ids: ${labelIds.join(', ')}) to msg ${messageId}`);
+  const res = await retryFetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ addLabelIds: labelIds })
   });
+  if (!res.ok) {
+    const body = await res.clone().text();
+    if (self.appLogger) self.appLogger.log('error', `modify API ${res.status}: ${body}`);
+  }
+  return res;
 }
 async function removeLabelsFromEmail(messageId, labelNames, token) {
   const labelIds = await getLabelIds(labelNames, token);
@@ -64,15 +70,19 @@ async function createLabel(labelName, token, fetchImpl = fetch) {
 async function applyRuleActions(email, rule, token) {
   const actions = rule.actions || {}; const messageId = email.id;
   try {
-    if (actions.addLabels?.length) await addLabelsToEmail(messageId, actions.addLabels, token);
+    if (actions.addLabels?.length) {
+      const res = await addLabelsToEmail(messageId, actions.addLabels, token);
+      if (!res.ok && self.appLogger) self.appLogger.log('error', `addLabels failed (${res.status}) for msg ${messageId}`);
+    }
     if (actions.removeLabels?.length) await removeLabelsFromEmail(messageId, actions.removeLabels, token);
     if (actions.markAsRead) await markEmailAsRead(messageId, token);
     if (actions.markAsImportant) await markEmailAsImportant(messageId, token);
     if (actions.archive) await archiveEmail(messageId, token);
     if (actions.trash) await trashEmail(messageId, token);
     if (actions.star) await starEmail(messageId, token);
-    console.log(`Applied actions to email: ${email.subject}`);
-  } catch (e) { console.error('Error applying rule actions:', e); }
+  } catch (e) {
+    if (self.appLogger) self.appLogger.log('error', `applyRuleActions error: ${e.message}`);
+  }
 }
 // Simple retry with exponential backoff for transient network/server errors
 async function retryFetch(url, options, attempts = 3, fetchImpl = fetch) {

@@ -1,6 +1,6 @@
 {
   "name": "gmail-regex-rules-manager",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Chrome extension for managing Gmail with regex-based rules",
   "scripts": {
     "build": "echo Extension ready for loading in Chrome",

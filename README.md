@@ -8,38 +8,34 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
 ## Features
 
 ✨ **Regex Pattern Matching**
-- Match emails by sender (From)
-- Match emails by recipient (To)
-- Match emails by subject
-- Match emails by body/snippet
-- **Live Regex Helper** - Test patterns in real-time as you type
+- Match emails by sender (From), recipient (To), subject, or body/snippet
+- **Live Regex Helper** — test patterns in real-time as you type
+- All patterns are case-insensitive
 
 🎯 **Automated Actions**
-- Add or remove labels
-- Mark as read/unread
-- Mark as important
-- Star emails
-- Archive emails
-- Move to trash
+- Add or remove labels (with autocomplete from your existing labels)
+- Mark as read/unread, mark as important, star
+- Archive or move to trash
+- **Apply to already-read emails** — optionally scan the last 30 days, not just new mail
 
-⚡ **Real-Time Monitoring**
-- Automatically detects new emails in Gmail
-- Processes emails as they arrive
-- **Configurable scan interval** (1-60 minutes)
-- Works in the background with retry logic
+⚡ **Reliable Email Processing**
+- Fetches emails via **Gmail API** — not fragile DOM scraping
+- Processes new mail automatically on a configurable interval (1-60 min)
+- **▶ Run Now** button for instant manual trigger
+- Works in the background even when Gmail isn't the active tab
+- Retry logic with exponential backoff
 
-🎨 **User-Friendly Interface**
-- Easy rule creation and management
-- **Drag & drop rule reordering** to set priority
-- Test rules before applying
-- Enable/disable rules individually
+🎨 **User-Friendly Side Panel**
+- Opens as a **Chrome side panel** — stays visible while you use Gmail
+- Easy rule creation, editing, and drag & drop reordering
+- **Label autocomplete** — pick from existing labels or create new ones (with sub-label support) right from the rule form
+- Test rules before applying; enable/disable individually
 - **Per-rule match statistics** (count & last matched)
-- Visual feedback and status
 
-📊 **Performance & Observability**
-- **Stats tab** with processing metrics
-- **Configurable retention** (5-500 entries)
-- **Adjustable log levels** (error/warn/info/debug)
+📊 **Observability**
+- **Log tab** — live activity log with color-coded entries (error/warn/info/debug), up to 300 entries
+- **Stats tab** — processing metrics per run (emails scanned, matches, duration)
+- Adjustable log levels and configurable retention
 - Import/export rules for backup/sharing
 
 ## Installation
@@ -285,12 +281,12 @@ Click the **⚙️** button next to "Sign In" to open the OAuth Configuration mo
 
 ## How It Works
 
-1. **Content Script**: Monitors Gmail webpage for new emails using DOM observation
-2. **Background Service Worker**: Processes emails and applies rules via Gmail API with exponential backoff retry logic
-3. **Storage**: Rules and settings are stored locally using Chrome's storage API
-4. **Gmail API**: Applies actions (labels, read status, etc.) to matched emails with automatic label creation
-5. **Performance Tracking**: Records metrics for each processing run (configurable retention)
-6. **Logging**: Structured logging with adjustable verbosity levels
+1. **Content Script**: Watches for inbox row-count changes and signals the background worker when new mail arrives
+2. **Background Service Worker**: On each alarm tick (or manual ▶ trigger), fetches recent inbox messages via Gmail API, matches them against active rules, and applies actions — no DOM parsing involved
+3. **Gmail API**: Used for all email fetching (`messages.list` + `messages.get`) and actions (`messages.modify`, label create/add/remove); ensures correct message IDs and accurate headers
+4. **Storage**: Rules, settings, and the activity log are stored locally using Chrome's storage API
+5. **Performance Tracking**: Records metrics for each processing run (configurable retention, visible in Stats tab)
+6. **Logging**: Structured, persistent log (up to 300 entries) with adjustable verbosity, visible in the Log tab
 
 ## Permissions
 
@@ -517,10 +513,10 @@ git push && git push --tags
 
 ## Limitations
 
-- Rules process emails visible in Gmail's current view
-- Body matching only works on email snippets (not full content)
+- Body matching uses the Gmail snippet (~100 chars), not the full message body
 - Maximum 100 rules recommended for performance
-- Requires Gmail to be open in at least one browser tab
+- Per-rule processed-ID tracking (for "apply to read" rules) resets on service worker restart; labels already applied are idempotent so re-applying is harmless
+- `newer_than:30d` window for "apply to read" rules; older emails require a manual API query
 
 ## Future Enhancements
 
@@ -533,6 +529,12 @@ git push && git push --tags
 - [x] Per-rule match statistics
 - [x] Structured logging
 - [x] In-popup OAuth client JSON upload (no file editing required)
+- [x] Side panel (replaces popup — stays open while using Gmail)
+- [x] Gmail API-based email fetching (reliable, no DOM dependency)
+- [x] Label autocomplete with in-UI label creation and sub-label support
+- [x] Activity log tab (persistent, color-coded, up to 300 entries)
+- [x] Apply rules to already-read emails (30-day lookback, per-rule)
+- [x] Manual run button (▶)
 - [ ] Advanced regex builder UI
 - [ ] Email templates for responses
 - [ ] Scheduled rule execution (time-based)

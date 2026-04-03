@@ -1,7 +1,15 @@
 // Background service worker for Gmail Regex Rules Manager
+importScripts('logger.js', 'perf.js', 'gmailActions.js');
 
 let authToken = null;
 let isMonitoring = false;
+const processedMessageIds = new Set();      // global dedup for time-windowed fetch
+const ruleProcessedIds = new Map();         // ruleId → Set<messageId> for applyToRead rules
+
+function getRuleProcessedSet(ruleId) {
+  if (!ruleProcessedIds.has(ruleId)) ruleProcessedIds.set(ruleId, new Set());
+  return ruleProcessedIds.get(ruleId);
+}
 
 // Helper: schedule alarm based on settings
 async function scheduleAlarmFromSettings() {
@@ -15,6 +23,11 @@ async function scheduleAlarmFromSettings() {
     if (self.appLogger) self.appLogger.log('warn','Failed scheduling alarm', e);
   }
 }
+
+// Open side panel when extension icon is clicked
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ tabId: tab.id });
+});
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener(() => {
@@ -56,13 +69,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     authenticateUser().then(sendResponse);
     return true;
   } else if (request.action === 'processEmails') {
-    processEmailsWithRules(request.emails).then(sendResponse);
+    // Content script detected new mail — trigger an API-based check immediately
+    checkForNewEmails().then(() => sendResponse({ success: true }));
     return true;
   } else if (request.action === 'testRule') {
     testRule(request.rule, request.email).then(sendResponse);
     return true;
   } else if (request.action === 'getAuthToken') {
     getAuthToken().then(sendResponse);
+    return true;
+  } else if (request.action === 'getGmailLabels') {
+    getGmailLabels().then(sendResponse);
+    return true;
+  } else if (request.action === 'createGmailLabel') {
+    createGmailLabel(request.name).then(sendResponse);
     return true;
   } else if (request.action === 'rescheduleInterval') {
     // Update settings then reschedule
@@ -142,39 +162,97 @@ async function getAuthToken() {
   return authenticateUser();
 }
 
-// Check for new emails
+// Check for new emails via Gmail API (no DOM dependency)
 async function checkForNewEmails() {
-  const settings = await chrome.storage.local.get(['settings']);
-  
-  if (!settings.settings || !settings.settings.enabled) {
+  const { settings } = await chrome.storage.local.get(['settings']);
+  if (!settings?.enabled) return;
+
+  if (self.appLogger) self.appLogger.log('info', 'Checking for new emails...');
+
+  const { success, token } = await getAuthToken();
+  if (!success || !token) {
+    if (self.appLogger) self.appLogger.log('error', 'Cannot check emails: not authenticated');
     return;
   }
-  
-  // Send message to content script if Gmail is open
-  chrome.tabs.query({ url: 'https://mail.google.com/*' }, (tabs) => {
-    tabs.forEach((tab) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'scanEmails' });
-    });
-  });
-  
-  // Update last checked time
-  chrome.storage.local.set({
-    settings: { ...settings.settings, lastChecked: Date.now() }
-  });
+
+  try {
+    const { rules: allRules } = await chrome.storage.local.get(['rules']);
+    const activeRules = (allRules || []).filter(r => r.enabled);
+    const hasReadRule = activeRules.some(r => r.applyToRead);
+
+    // Wide window (30 d) when any rule needs to cover read mail; otherwise since last check
+    let query;
+    if (hasReadRule) {
+      query = encodeURIComponent('in:inbox newer_than:30d');
+    } else {
+      const afterSec = settings.lastChecked
+        ? Math.floor(settings.lastChecked / 1000)
+        : Math.floor((Date.now() - 86400000) / 1000);
+      query = encodeURIComponent(`in:inbox after:${afterSec}`);
+    }
+
+    const listRes = await fetch(
+      `https://www.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    const listData = await listRes.json();
+
+    if (listData.error) {
+      if (self.appLogger) self.appLogger.log('error', `Gmail API error: ${listData.error.message}`);
+      return;
+    }
+
+    const allMessages = listData.messages || [];
+    const newMessages = allMessages.filter(m => !processedMessageIds.has(m.id));
+    if (self.appLogger) self.appLogger.log('info', `Found ${allMessages.length} in window, ${newMessages.length} new`);
+    if (newMessages.length === 0) return;
+
+    // Fetch metadata for each unseen message
+    const emails = (await Promise.all(newMessages.map(async (msg) => {
+      try {
+        const r = await fetch(
+          `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata` +
+          `&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        const d = await r.json();
+        const h = (name) => (d.payload?.headers || [])
+          .find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+        processedMessageIds.add(msg.id);
+        return { id: msg.id, from: h('From'), to: h('To'), subject: h('Subject'), body: d.snippet || '', snippet: d.snippet || '' };
+      } catch (e) {
+        if (self.appLogger) self.appLogger.log('warn', `Failed to fetch message ${msg.id}: ${e.message}`);
+        return null;
+      }
+    }))).filter(Boolean);
+
+    // Cap set size to avoid unbounded growth across restarts
+    if (processedMessageIds.size > 2000) processedMessageIds.clear();
+
+    if (emails.length > 0) await processEmailsWithRules(emails);
+  } catch (e) {
+    if (self.appLogger) self.appLogger.log('error', `checkForNewEmails failed: ${e.message}`);
+  }
+
+  chrome.storage.local.set({ settings: { ...settings, lastChecked: Date.now() } });
 }
 
 // Process emails with rules
 async function processEmailsWithRules(emails) {
   const { rules } = await chrome.storage.local.get(['rules']);
-  
+
   if (!rules || rules.length === 0) {
+    if (self.appLogger) self.appLogger.log('info', 'No rules configured, skipping');
     return { success: true, processed: 0 };
   }
-  
+
   const token = authToken || (await getAuthToken()).token;
   if (!token) {
+    if (self.appLogger) self.appLogger.log('error', 'processEmailsWithRules: no auth token');
     return { success: false, error: 'Not authenticated' };
   }
+
+  if (self.appLogger) self.appLogger.log('info', `Processing ${emails.length} email(s) against ${rules.filter(r => r.enabled).length} active rule(s)`);
   
   let processedCount = 0;
   
@@ -183,22 +261,31 @@ async function processEmailsWithRules(emails) {
   let ruleMatches = 0;
   const matchedRuleIdsThisRun = new Set();
   for (const email of emails) {
+    if (self.appLogger) self.appLogger.log('info', `Email: subject="${email.subject}" from="${email.from}"`);
     for (const rule of rules) {
       if (!rule.enabled) continue;
+      // For applyToRead rules, use per-rule dedup so we don't re-label on every check
+      if (rule.applyToRead) {
+        const seen = getRuleProcessedSet(rule.id);
+        if (seen.has(email.id)) continue;
+      }
       matchChecks++;
       const matches = await matchesRule(email, rule);
+      if (self.appLogger) self.appLogger.log('debug', `  Rule "${rule.name}": ${matches ? 'MATCH' : 'no match'}`);
       if (matches) {
         ruleMatches++;
+        if (rule.applyToRead) getRuleProcessedSet(rule.id).add(email.id);
+        if (self.appLogger) self.appLogger.log('info', `Rule "${rule.name}" matched: "${email.subject}" from ${email.from}`);
         // Update per-rule statistics
         if (!rule.stats) rule.stats = { count: 0, lastMatched: null };
         rule.stats.count += 1;
         rule.stats.lastMatched = Date.now();
         matchedRuleIdsThisRun.add(rule.id);
-        // applyRuleActions now provided by gmailActions.js (attached to global scope)
         if (typeof self.applyRuleActions === 'function') {
           await self.applyRuleActions(email, rule, token);
+          if (self.appLogger) self.appLogger.log('info', `Actions applied for rule "${rule.name}"`);
         } else {
-        if (self.appLogger) self.appLogger.log('warn','applyRuleActions helper not found');
+          if (self.appLogger) self.appLogger.log('warn', 'applyRuleActions helper not found');
         }
         processedCount++;
       }
@@ -249,6 +336,48 @@ async function matchesRule(email, rule) {
   } catch (error) {
     console.error('Error matching rule:', error);
     return false;
+  }
+}
+
+// Fetch user's Gmail labels
+async function getGmailLabels() {
+  try {
+    const token = authToken || (await getAuthToken()).token;
+    if (!token) return { success: false, labels: [] };
+    const res = await fetch('https://www.googleapis.com/gmail/v1/users/me/labels', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const labels = (data.labels || [])
+      .filter(l => l.type === 'user')
+      .map(l => l.name)
+      .sort((a, b) => a.localeCompare(b));
+    return { success: true, labels };
+  } catch (e) {
+    return { success: false, labels: [] };
+  }
+}
+
+// Create a Gmail label by name
+async function createGmailLabel(name) {
+  try {
+    const token = authToken || (await getAuthToken()).token;
+    if (!token) return { success: false, error: 'Not authenticated' };
+    const res = await fetch('https://www.googleapis.com/gmail/v1/users/me/labels', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, labelListVisibility: 'labelShow', messageListVisibility: 'show' })
+    });
+    const data = await res.json();
+    if (data.id) {
+      if (self.appLogger) self.appLogger.log('info', `Created label "${name}" (id: ${data.id})`);
+      return { success: true, label: data };
+    }
+    const msg = data.error?.message || 'Unknown error';
+    if (self.appLogger) self.appLogger.log('error', `Failed to create label "${name}": ${msg}`);
+    return { success: false, error: msg };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
 }
 

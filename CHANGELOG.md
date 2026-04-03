@@ -4,6 +4,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.3.0 - 2026-04-03
+
+### Added
+
+- **Side panel**: Extension now opens as a Chrome side panel instead of a popup — stays open while you browse Gmail
+- **Gmail API email fetching**: Replaced fragile DOM-based email extraction with direct Gmail API calls — correct message IDs, accurate headers, works even when Gmail is not the active tab
+- **▶ Run Now button**: Manually trigger a rule check instantly from the panel header without waiting for the next alarm
+- **Log tab**: Persistent activity log (up to 300 entries) showing every check, rule match, API result, and error — color-coded by severity with Refresh/Clear controls
+- **Label autocomplete**: Clicking "Add Labels" or "Remove Labels" now fetches your existing Gmail labels and shows a filtered dropdown as you type
+- **Create label from UI**: Typing a label that doesn't exist shows a "+ Create" option; confirming opens a dialog that creates the label in Gmail immediately, with an option to make it a sub-label of an existing one
+- **Apply to already-read emails** (per rule): New checkbox on each rule — when enabled, the rule scans the last 30 days of inbox mail (not just new arrivals) and uses per-rule dedup to avoid re-labeling
+
+### Fixed
+
+- **Critical: helper scripts never loaded** — `logger.js`, `perf.js`, and `gmailActions.js` were not imported into the service worker via `importScripts()`, so logging, performance tracking, and all rule actions silently did nothing
+- **Emails skipped when already read** — query was filtered to `is:unread`; switched to time-windowed fetch (`after:lastChecked`) so rules apply regardless of read status
+- **Wrong message IDs** — DOM extraction used `data-thread-id` (a thread ID) instead of a real message ID, causing Gmail API `modify` calls to silently fail
+
+### Changed
+
+- `content.js` simplified to only detect inbox row count changes and signal the background; all email data is now fetched via Gmail API in the background worker
+
 ## v1.2.0 - 2026-04-03
 
 ### Added

@@ -13,6 +13,7 @@
       <div class="auth-status">
         <span id="authStatus">Not authenticated</span>
         <button id="authBtn" class="btn btn-small">Sign In</button>
+        <button id="runNowBtn" class="btn btn-small" style="margin-left:4px;" title="Run rules now">▶</button>
         <button id="configBtn" class="btn btn-small" style="margin-left:4px;" title="OAuth Configuration">⚙️</button>
         <button id="helpBtn" class="btn btn-small" style="margin-left:4px;" title="Keyboard shortcuts">❓</button>
       </div>
@@ -102,6 +103,7 @@
       <button class="tab-btn" data-tab="test">Test</button>
   <button class="tab-btn" data-tab="importexport">Import/Export</button>
       <button class="tab-btn" data-tab="stats">Stats</button>
+      <button class="tab-btn" data-tab="log">Log</button>
     </div>
 
     <div class="tab-content active" id="rulesTab">
@@ -171,12 +173,18 @@
           
           <div class="form-group">
             <label for="addLabels">Add Labels (comma-separated)</label>
-            <input type="text" id="addLabels" placeholder="e.g., Newsletter, Auto-Processed">
+            <div class="label-autocomplete-wrap">
+              <input type="text" id="addLabels" placeholder="e.g., Newsletter, Auto-Processed" autocomplete="off">
+              <div class="label-dropdown" id="addLabelsDropdown"></div>
+            </div>
           </div>
 
           <div class="form-group">
             <label for="removeLabels">Remove Labels (comma-separated)</label>
-            <input type="text" id="removeLabels" placeholder="e.g., Inbox">
+            <div class="label-autocomplete-wrap">
+              <input type="text" id="removeLabels" placeholder="e.g., Inbox" autocomplete="off">
+              <div class="label-dropdown" id="removeLabelsDropdown"></div>
+            </div>
           </div>
 
           <div class="checkbox-group">
@@ -199,6 +207,13 @@
             <label>
               <input type="checkbox" id="trash">
               Move to trash
+            </label>
+          </div>
+
+          <div class="form-group" style="margin-top:12px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="applyToRead">
+              <span>Apply to already-read emails <span style="color:#80868b; font-size:11px;">(scans last 30 days, not just new mail)</span></span>
             </label>
           </div>
         </div>
@@ -282,6 +297,15 @@
           <tbody></tbody>
         </table>
       </div>
+    </div>
+
+    <div class="tab-content" id="logTab">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <h2 style="margin:0;">Log</h2>
+        <button id="refreshLogBtn" class="btn btn-small">Refresh</button>
+        <button id="clearLogBtn" class="btn btn-secondary btn-small">Clear</button>
+      </div>
+      <div id="logList" class="log-list"></div>
     </div>
 
   <script src="popup.js"></script>

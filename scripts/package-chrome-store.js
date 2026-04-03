@@ -10,7 +10,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const OUTPUT_DIR = path.join(__dirname, '..', 'dist');
-const OUTPUT_FILE = 'gmail-regex-manager-v1.2.0.zip';
+const OUTPUT_FILE = 'gmail-regex-manager-v1.3.0.zip';
 const OUTPUT_PATH = path.join(OUTPUT_DIR, OUTPUT_FILE);
 
 // Files and directories to include in the package

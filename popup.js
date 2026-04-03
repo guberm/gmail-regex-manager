@@ -28,6 +28,19 @@ function setupEventListeners() {
   // Auth button
   document.getElementById('authBtn').addEventListener('click', authenticate);
 
+  // Run now button
+  document.getElementById('runNowBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('runNowBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    try {
+      await chrome.runtime.sendMessage({ action: 'processEmails' });
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '▶';
+    }
+  });
+
   // Configuration button
   document.getElementById('configBtn')?.addEventListener('click', () => {
     openConfigModal();
@@ -150,6 +163,10 @@ Tips:
   if (clearBtn) clearBtn.addEventListener('click', clearStats);
   if (copyBtn) copyBtn.addEventListener('click', copyStatsToClipboard);
 
+  // Log buttons
+  document.getElementById('refreshLogBtn')?.addEventListener('click', renderLogs);
+  document.getElementById('clearLogBtn')?.addEventListener('click', clearLogs);
+
   // Settings controls
   const intervalInput = document.getElementById('processingInterval');
   const retentionInput = document.getElementById('perfRetention');
@@ -172,6 +189,9 @@ Tips:
       updateSettings({ perfRetentionLimit: val });
     });
   }
+
+  initLabelAutocomplete('addLabels', 'addLabelsDropdown');
+  initLabelAutocomplete('removeLabels', 'removeLabelsDropdown');
 }
 
 function initSettingsControls() {
@@ -197,9 +217,8 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(content => {
     content.classList.toggle('active', content.id === `${tabName}Tab`);
   });
-  if (tabName === 'stats') {
-    renderStats();
-  }
+  if (tabName === 'stats') renderStats();
+  if (tabName === 'log') renderLogs();
 }
 
 // Check authentication status
@@ -424,7 +443,8 @@ async function saveRule(e) {
       star: document.getElementById('star').checked,
       archive: document.getElementById('archive').checked,
       trash: document.getElementById('trash').checked
-    }
+    },
+    applyToRead: document.getElementById('applyToRead').checked
   };
 
   // Validate at least one pattern
@@ -482,6 +502,7 @@ window.editRule = function(ruleId) {
   document.getElementById('star').checked = actions.star || false;
   document.getElementById('archive').checked = actions.archive || false;
   document.getElementById('trash').checked = actions.trash || false;
+  document.getElementById('applyToRead').checked = rule.applyToRead || false;
 
   switchTab('create');
 };
@@ -573,6 +594,168 @@ function generateId() {
   return 'rule_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
 }
 
+// Label autocomplete
+let cachedGmailLabels = null;
+
+async function fetchGmailLabels() {
+  if (cachedGmailLabels) return cachedGmailLabels;
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'getGmailLabels' });
+    if (res && res.success) cachedGmailLabels = res.labels;
+  } catch (e) {}
+  return cachedGmailLabels || [];
+}
+
+function initLabelAutocomplete(inputId, dropdownId) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  if (!input || !dropdown) return;
+
+  input.addEventListener('focus', async () => {
+    const labels = await fetchGmailLabels();
+    const current = getCurrentToken(input.value);
+    renderDropdown(input, dropdown, labels, current);
+  });
+
+  input.addEventListener('input', async () => {
+    const labels = await fetchGmailLabels();
+    const current = getCurrentToken(input.value);
+    renderDropdown(input, dropdown, labels, current);
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => dropdown.classList.remove('open'), 150);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') dropdown.classList.remove('open');
+  });
+}
+
+function getCurrentToken(value) {
+  const lastComma = value.lastIndexOf(',');
+  return lastComma === -1 ? value.trim() : value.slice(lastComma + 1).trim();
+}
+
+function renderDropdown(input, dropdown, labels, filter) {
+  const filtered = filter
+    ? labels.filter(l => l.toLowerCase().includes(filter.toLowerCase()))
+    : labels;
+
+  const exactMatch = labels.some(l => l.toLowerCase() === filter.toLowerCase());
+  const showCreate = filter.length > 0 && !exactMatch;
+
+  if (filtered.length === 0 && !showCreate) {
+    dropdown.classList.remove('open');
+    return;
+  }
+
+  const existingItems = filtered
+    .map(l => `<div class="label-dropdown-item" data-label="${escapeHtml(l)}">${escapeHtml(l)}</div>`)
+    .join('');
+
+  const createItem = showCreate
+    ? `<div class="label-dropdown-item label-create-item" data-create="${escapeHtml(filter)}">+ Create "<strong>${escapeHtml(filter)}</strong>"</div>`
+    : '';
+
+  dropdown.innerHTML = existingItems + createItem;
+
+  dropdown.querySelectorAll('.label-dropdown-item:not(.label-create-item)').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      appendLabelToInput(input, item.dataset.label);
+      dropdown.classList.remove('open');
+      input.focus();
+    });
+  });
+
+  dropdown.querySelector('.label-create-item')?.addEventListener('mousedown', async (e) => {
+    e.preventDefault();
+    dropdown.classList.remove('open');
+    const name = await promptNewLabel(filter, labels);
+    if (name) appendLabelToInput(input, name);
+    input.focus();
+  });
+
+  dropdown.classList.add('open');
+}
+
+function appendLabelToInput(input, label) {
+  const lastComma = input.value.lastIndexOf(',');
+  input.value = lastComma === -1
+    ? label + ', '
+    : input.value.slice(0, lastComma + 1) + ' ' + label + ', ';
+}
+
+function promptNewLabel(name, existingLabels) {
+  return new Promise((resolve) => {
+    // Remove any existing dialog
+    document.getElementById('createLabelDialog')?.remove();
+
+    const topLabels = existingLabels.filter(l => !l.includes('/'));
+
+    const dialog = document.createElement('div');
+    dialog.id = 'createLabelDialog';
+    dialog.className = 'create-label-dialog';
+    dialog.innerHTML = `
+      <div class="create-label-dialog-inner">
+        <div class="create-label-title">Create label "<strong>${escapeHtml(name)}</strong>"</div>
+        <label class="create-label-check">
+          <input type="checkbox" id="clIsSubLabel"> Make it a sub-label
+        </label>
+        <div id="clParentWrap" style="display:none; margin-top:8px;">
+          <select id="clParentSelect" style="width:100%; padding:4px 6px; font-size:13px; border:1px solid var(--border-color); border-radius:4px;">
+            ${topLabels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="create-label-actions">
+          <button id="clCancel" class="btn btn-secondary btn-small">Cancel</button>
+          <button id="clConfirm" class="btn btn-small">Add</button>
+        </div>
+      </div>
+    `;
+
+    document.querySelector('.container').appendChild(dialog);
+
+    const checkbox = dialog.querySelector('#clIsSubLabel');
+    const parentWrap = dialog.querySelector('#clParentWrap');
+    checkbox.addEventListener('change', () => {
+      parentWrap.style.display = checkbox.checked ? 'block' : 'none';
+    });
+
+    dialog.querySelector('#clCancel').addEventListener('click', () => {
+      dialog.remove();
+      resolve(null);
+    });
+
+    dialog.querySelector('#clConfirm').addEventListener('click', async () => {
+      const confirmBtn = dialog.querySelector('#clConfirm');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '...';
+
+      const isSubLabel = checkbox.checked;
+      const parent = dialog.querySelector('#clParentSelect')?.value;
+      const finalName = isSubLabel && parent ? `${parent}/${name}` : name;
+
+      const res = await chrome.runtime.sendMessage({ action: 'createGmailLabel', name: finalName });
+
+      dialog.remove();
+
+      if (res.success) {
+        // Update cache so it shows in future dropdowns
+        if (cachedGmailLabels && !cachedGmailLabels.includes(finalName)) {
+          cachedGmailLabels.push(finalName);
+          cachedGmailLabels.sort((a, b) => a.localeCompare(b));
+        }
+        resolve(finalName);
+      } else {
+        showError('Could not create label: ' + (res.error || 'unknown'));
+        resolve(null);
+      }
+    });
+  });
+}
+
 function parseCommaSeparated(value) {
   return value
     .split(',')
@@ -656,7 +839,8 @@ async function importRules(){
         star: !!r.actions?.star,
         archive: !!r.actions?.archive,
         trash: !!r.actions?.trash
-      }
+      },
+      applyToRead: !!r.applyToRead
     }));
     const { rules } = await chrome.storage.local.get(['rules']);
     const existing = rules || [];
@@ -737,6 +921,32 @@ async function copyStatsToClipboard() {
   } catch (e) {
     showError('Failed to copy: ' + e.message);
   }
+}
+
+// Log tab
+async function renderLogs() {
+  const list = document.getElementById('logList');
+  if (!list) return;
+  const { appLogs } = await chrome.storage.local.get(['appLogs']);
+  const logs = appLogs || [];
+  if (logs.length === 0) {
+    list.innerHTML = '<div class="log-empty">No log entries yet. Hit ▶ to run rules.</div>';
+    return;
+  }
+  list.innerHTML = [...logs].reverse().map(entry => {
+    const d = new Date(entry.ts);
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return `<div class="log-entry log-${entry.level}">
+      <span class="log-ts">${time}</span>
+      <span class="log-lvl">${entry.level.toUpperCase()}</span>
+      <span class="log-msg">${escapeHtml(entry.message)}</span>
+    </div>`;
+  }).join('');
+}
+
+async function clearLogs() {
+  await chrome.storage.local.set({ appLogs: [] });
+  renderLogs();
 }
 
 // Live Regex Helper
