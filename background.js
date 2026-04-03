@@ -11,6 +11,29 @@ function getRuleProcessedSet(ruleId) {
   return ruleProcessedIds.get(ruleId);
 }
 
+// Restore processed-ID sets from storage so dedup survives service worker restarts
+(async function initPersistedIds() {
+  try {
+    const { processedIds, ruleMatchedIds } = await chrome.storage.local.get(['processedIds', 'ruleMatchedIds']);
+    const cutoff = Date.now() - 32 * 86400000; // 32-day window, slightly > 30d query window
+    if (processedIds) {
+      for (const [id, ts] of Object.entries(processedIds)) {
+        if (ts > cutoff) processedMessageIds.add(id);
+      }
+    }
+    if (ruleMatchedIds) {
+      for (const [ruleId, matches] of Object.entries(ruleMatchedIds)) {
+        const set = getRuleProcessedSet(ruleId);
+        for (const [msgId, ts] of Object.entries(matches)) {
+          if (ts > cutoff) set.add(msgId);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load persisted processed IDs', e);
+  }
+})();
+
 // Helper: schedule alarm based on settings
 async function scheduleAlarmFromSettings() {
   try {
@@ -207,6 +230,8 @@ async function checkForNewEmails() {
     if (self.appLogger) self.appLogger.log('info', `Found ${allMessages.length} in window, ${newMessages.length} new`);
     if (newMessages.length === 0) return;
 
+    const newlyAdded = new Set();
+
     // Fetch metadata for each unseen message
     const emails = (await Promise.all(newMessages.map(async (msg) => {
       try {
@@ -219,6 +244,7 @@ async function checkForNewEmails() {
         const h = (name) => (d.payload?.headers || [])
           .find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
         processedMessageIds.add(msg.id);
+        newlyAdded.add(msg.id);
         return { id: msg.id, from: h('From'), to: h('To'), subject: h('Subject'), body: d.snippet || '', snippet: d.snippet || '' };
       } catch (e) {
         if (self.appLogger) self.appLogger.log('warn', `Failed to fetch message ${msg.id}: ${e.message}`);
@@ -230,6 +256,21 @@ async function checkForNewEmails() {
     if (processedMessageIds.size > 2000) processedMessageIds.clear();
 
     if (emails.length > 0) await processEmailsWithRules(emails);
+
+    // Persist newly seen IDs so dedup survives service worker restarts
+    if (newlyAdded.size > 0) {
+      try {
+        const { processedIds } = await chrome.storage.local.get(['processedIds']);
+        const store = processedIds || {};
+        const now = Date.now();
+        const cutoff = now - 32 * 86400000;
+        for (const id of newlyAdded) store[id] = now;
+        for (const id of Object.keys(store)) { if (store[id] < cutoff) delete store[id]; }
+        await chrome.storage.local.set({ processedIds: store });
+      } catch (e) {
+        if (self.appLogger) self.appLogger.log('warn', 'Failed to persist processedIds', e);
+      }
+    }
   } catch (e) {
     if (self.appLogger) self.appLogger.log('error', `checkForNewEmails failed: ${e.message}`);
   }
@@ -255,11 +296,12 @@ async function processEmailsWithRules(emails) {
   if (self.appLogger) self.appLogger.log('info', `Processing ${emails.length} email(s) against ${rules.filter(r => r.enabled).length} active rule(s)`);
   
   let processedCount = 0;
-  
+
   const startTime = performance.now();
   let matchChecks = 0;
   let ruleMatches = 0;
   const matchedRuleIdsThisRun = new Set();
+  const newRuleMatches = new Map(); // ruleId → Set<msgId> for persistence
   for (const email of emails) {
     if (self.appLogger) self.appLogger.log('info', `Email: subject="${email.subject}" from="${email.from}"`);
     for (const rule of rules) {
@@ -274,7 +316,11 @@ async function processEmailsWithRules(emails) {
       if (self.appLogger) self.appLogger.log('debug', `  Rule "${rule.name}": ${matches ? 'MATCH' : 'no match'}`);
       if (matches) {
         ruleMatches++;
-        if (rule.applyToRead) getRuleProcessedSet(rule.id).add(email.id);
+        if (rule.applyToRead) {
+          getRuleProcessedSet(rule.id).add(email.id);
+          if (!newRuleMatches.has(rule.id)) newRuleMatches.set(rule.id, new Set());
+          newRuleMatches.get(rule.id).add(email.id);
+        }
         if (self.appLogger) self.appLogger.log('info', `Rule "${rule.name}" matched: "${email.subject}" from ${email.from}`);
         // Update per-rule statistics
         if (!rule.stats) rule.stats = { count: 0, lastMatched: null };
@@ -302,6 +348,29 @@ async function processEmailsWithRules(emails) {
       await chrome.storage.local.set({ rules });
     } catch (e) {
     if (self.appLogger) self.appLogger.log('warn','Failed to persist updated rule stats', e);
+    }
+  }
+  // Persist per-rule matched IDs so applyToRead dedup survives service worker restarts
+  if (newRuleMatches.size > 0) {
+    try {
+      const { ruleMatchedIds } = await chrome.storage.local.get(['ruleMatchedIds']);
+      const store = ruleMatchedIds || {};
+      const now = Date.now();
+      const cutoff = now - 32 * 86400000;
+      for (const [ruleId, msgIds] of newRuleMatches) {
+        if (!store[ruleId]) store[ruleId] = {};
+        for (const msgId of msgIds) store[ruleId][msgId] = now;
+      }
+      // Prune stale entries
+      for (const ruleId of Object.keys(store)) {
+        for (const msgId of Object.keys(store[ruleId])) {
+          if (store[ruleId][msgId] < cutoff) delete store[ruleId][msgId];
+        }
+        if (Object.keys(store[ruleId]).length === 0) delete store[ruleId];
+      }
+      await chrome.storage.local.set({ ruleMatchedIds: store });
+    } catch (e) {
+      if (self.appLogger) self.appLogger.log('warn', 'Failed to persist ruleMatchedIds', e);
     }
   }
   return { success: true, processed: processedCount, durationMs, matchChecks, ruleMatches };
