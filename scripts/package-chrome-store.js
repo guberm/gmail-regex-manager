@@ -10,7 +10,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const OUTPUT_DIR = path.join(__dirname, '..', 'dist');
-const OUTPUT_FILE = 'gmail-regex-manager-v1.1.0.zip';
+const OUTPUT_FILE = 'gmail-regex-manager-v1.2.0.zip';
 const OUTPUT_PATH = path.join(OUTPUT_DIR, OUTPUT_FILE);
 
 // Files and directories to include in the package
@@ -114,7 +114,17 @@ try {
     for (const file of includeFiles) {
       const src = path.join(__dirname, '..', file);
       const dest = path.join(tempDir, file);
-      if (fs.existsSync(src)) {
+      if (!fs.existsSync(src)) continue;
+
+      if (file === 'manifest.json') {
+        // Strip the developer's personal client_id before publishing
+        const manifest = JSON.parse(fs.readFileSync(src, 'utf8'));
+        if (manifest.oauth2?.client_id) {
+          manifest.oauth2.client_id = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+        }
+        fs.writeFileSync(dest, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+        console.log('  ✓ manifest.json (client_id scrubbed)');
+      } else {
         fs.copyFileSync(src, dest);
         console.log(`  ✓ ${file}`);
       }
@@ -187,9 +197,24 @@ try {
     if (fs.existsSync('LICENSE')) {
       filesToZip.push('LICENSE');
     }
-    
-    const zipCommand = `zip -r "${OUTPUT_PATH}" ${filesToZip.join(' ')} -x "*.git*" "node_modules/*" "tests/*" "scripts/*" ".github/*"`;
-    execSync(zipCommand, { stdio: 'inherit' });
+
+    // Temporarily scrub the developer's personal client_id from manifest.json
+    const manifestPath = path.join(__dirname, '..', 'manifest.json');
+    const originalManifest = fs.readFileSync(manifestPath, 'utf8');
+    const manifest = JSON.parse(originalManifest);
+    if (manifest.oauth2?.client_id) {
+      manifest.oauth2.client_id = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+      console.log('  ✓ manifest.json (client_id scrubbed)');
+    }
+
+    try {
+      const zipCommand = `zip -r "${OUTPUT_PATH}" ${filesToZip.join(' ')} -x "*.git*" "node_modules/*" "tests/*" "scripts/*" ".github/*"`;
+      execSync(zipCommand, { stdio: 'inherit' });
+    } finally {
+      // Always restore the original manifest.json
+      fs.writeFileSync(manifestPath, originalManifest, 'utf8');
+    }
   }
   
   const stats = fs.statSync(OUTPUT_PATH);

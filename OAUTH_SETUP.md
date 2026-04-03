@@ -4,7 +4,13 @@ This guide will walk you through creating your own Google Cloud Project and obta
 
 ## 🚀 Quick Start (TL;DR)
 
-**For local/unpacked extension:**
+**Easiest — no file editing required:**
+1. Load extension in Chrome → Get Extension ID
+2. Google Cloud Console → Create OAuth Client → **Download JSON**
+3. Click **⚙️** in the extension popup → **Upload OAuth Client JSON** → select the downloaded file
+4. Click **Sign In** — done
+
+**Traditional (editing files):**
 1. Load extension in Chrome → Get Extension ID
 2. Google Cloud Console → Create OAuth Client → **Use "Chrome Extension" type**
 3. Paste Extension ID into Application ID field
@@ -131,6 +137,18 @@ Now that you have your extension ID, update your OAuth credentials:
 **Important:** After updating, wait 5-10 minutes for Google's servers to propagate the changes.
 
 ### 7. Configure the Extension
+
+#### Option A: Upload JSON in the Extension Popup (Recommended — no file editing)
+
+1. In Google Cloud Console, on the OAuth credentials page, click **"Download JSON"** next to your new credential
+2. Click the extension icon in Chrome
+3. Click the **⚙️** button in the popup header
+4. Under **"Upload OAuth Client JSON"**, click the file input and select the downloaded JSON
+5. You will see "Client ID saved" — click **"Sign In"** to authenticate immediately
+
+No extension reload required.
+
+#### Option B: Edit manifest.json (Traditional)
 
 1. Open the extension folder on your computer
 2. Edit the `manifest.json` file

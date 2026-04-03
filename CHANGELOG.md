@@ -1,29 +1,31 @@
 # Changelog
 
+<!-- markdownlint-disable MD024 -->
+
 All notable changes to this project will be documented in this file.
 
-## [v1.0.0] - 2025-11-07
-### Added
-- Initial public release of Gmail Regex Rules Manager
-- Core rule engine (regex matching for from, to, subject, body snippet)
-- Actions: label add/remove, mark read/unread, star, archive, importance toggle, trash
-- OAuth2 integration (placeholder client ID)
-- Popup UI for creating/testing/enabling rules
-- Background service worker for processing emails
-- SVG and PNG icons with generation script
-- GitHub Actions workflow for manifest & icon validation
-- Documentation: README, SETUP, TROUBLESHOOTING, EXAMPLES
-- LICENSE (MIT), CONTRIBUTING guidelines
-
-### Notes
-- Body matching currently uses snippet not full message payload
-- Performance tuned for <= 100 rules
-
-[v1.0.0]: https://github.com/guberm/gmail-regex-manager/releases/tag/v1.0.0
-
-## v1.1.0 - 2025-11-07
+## v1.2.0 - 2026-04-03
 
 ### Added
+
+- **In-popup OAuth setup**: Click ⚙️ → upload the `client_secret_*.json` downloaded from Google Cloud Console — Client ID is saved automatically and used on next Sign In, no `manifest.json` editing or extension reload required
+
+### Fixed
+
+- Remove `export` keyword from `shortcuts.js` — caused `SyntaxError: Unexpected token 'export'` when loaded as a regular script in the popup
+- Replace inline `onclick` attributes in rule list with event delegation — resolves Content Security Policy violations in Manifest V3
+
+## v1.1.1 - 2026-04-03
+
+### Fixed
+
+- Remove `export` keyword from `shortcuts.js` — caused `SyntaxError: Unexpected token 'export'` when loaded as a regular script in the popup
+- Replace inline `onclick` attributes in rule list with event delegation — resolves Content Security Policy violations in Manifest V3
+
+## [v1.1.0] - 2025-11-07
+
+### Added
+
 - **Settings Controls**: Configurable processing interval (1-60 min) and performance retention (5-500 entries)
 - **Live Regex Helper**: Real-time pattern testing with visual feedback in Create Rule tab
 - **Rule Ordering**: Drag & drop rules to set priority/execution order
@@ -40,21 +42,45 @@ All notable changes to this project will be documented in this file.
 - **Quick Start Guide**: Step-by-step getting started documentation
 
 ### Changed
-- Modularized codebase: extracted gmailActions.js, perf.js, logger.js, rules.js
+
+- Modularized codebase: extracted `gmailActions.js`, `perf.js`, `logger.js`, `rules.js`
 - Dynamic alarm rescheduling based on interval setting
 - Settings stored in structured object with persistence
 - Performance retention now configurable (was fixed at 50)
-- Moved tests from __tests__/ to tests/unit/ (Chrome extension compatibility)
+- Moved tests from `__tests__/` to `tests/unit/` (Chrome extension compatibility)
 
 ### Fixed
+
 - Resolved Chrome extension loader issue with test directory naming
 - Fixed test mocking for browser globals (self, console)
 - Improved error handling in Gmail API operations
 
 ### Documentation
+
 - Updated README with all new features
 - Added QUICKSTART.md for faster onboarding
-- Added examples/rules-comprehensive.json
+- Added `examples/rules-comprehensive.json`
 - Enhanced inline tooltips and help text
 
+## [v1.0.0] - 2025-11-07
+
+### Added
+
+- Initial public release of Gmail Regex Rules Manager
+- Core rule engine (regex matching for from, to, subject, body snippet)
+- Actions: label add/remove, mark read/unread, star, archive, importance toggle, trash
+- OAuth2 integration (placeholder client ID)
+- Popup UI for creating/testing/enabling rules
+- Background service worker for processing emails
+- SVG and PNG icons with generation script
+- GitHub Actions workflow for manifest & icon validation
+- Documentation: README, SETUP, TROUBLESHOOTING, EXAMPLES
+- LICENSE (MIT), CONTRIBUTING guidelines
+
+### Notes
+
+- Body matching currently uses snippet not full message payload
+- Performance tuned for <= 100 rules
+
 [v1.1.0]: https://github.com/guberm/gmail-regex-manager/releases/tag/v1.1.0
+[v1.0.0]: https://github.com/guberm/gmail-regex-manager/releases/tag/v1.0.0

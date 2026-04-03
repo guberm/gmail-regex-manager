@@ -76,26 +76,62 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Authenticate with Google
+// Authenticate with Google — uses custom client_id (from uploaded JSON) if stored,
+// otherwise falls back to the manifest.json client_id via chrome.identity.getAuthToken.
 async function authenticateUser() {
   try {
-    const token = await new Promise((resolve, reject) => {
-      chrome.identity.getAuthToken({ interactive: true }, (token) => {
-        if (chrome.runtime.lastError) {
-          reject(chrome.runtime.lastError);
-        } else {
-          resolve(token);
-        }
+    const { customOauth } = await chrome.storage.local.get(['customOauth']);
+    let token;
+    if (customOauth?.clientId) {
+      token = await authenticateWithCustomClientId(customOauth.clientId);
+    } else {
+      token = await new Promise((resolve, reject) => {
+        chrome.identity.getAuthToken({ interactive: true }, (t) => {
+          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+          else resolve(t);
+        });
       });
-    });
-    
+    }
     authToken = token;
-  if (self.appLogger) self.appLogger.log('info','Authentication successful');
+    if (self.appLogger) self.appLogger.log('info', 'Authentication successful');
     return { success: true, token };
   } catch (error) {
-  if (self.appLogger) self.appLogger.log('error','Authentication failed', error);
+    if (self.appLogger) self.appLogger.log('error', 'Authentication failed', error);
     return { success: false, error: error.message };
   }
+}
+
+// OAuth implicit flow using a custom client_id uploaded by the user.
+// Uses chrome.identity.launchWebAuthFlow — no client_secret required.
+async function authenticateWithCustomClientId(clientId) {
+  const redirectUri = `https://${chrome.runtime.id}.chromiumapp.org/`;
+  const scopes = [
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/gmail.labels'
+  ].join(' ');
+
+  const authUrl = new URL('https://accounts.google.com/o/oauth2/auth');
+  authUrl.searchParams.set('client_id', clientId);
+  authUrl.searchParams.set('redirect_uri', redirectUri);
+  authUrl.searchParams.set('response_type', 'token');
+  authUrl.searchParams.set('scope', scopes);
+
+  return new Promise((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow(
+      { url: authUrl.toString(), interactive: true },
+      (responseUrl) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        const hash = new URL(responseUrl).hash.slice(1);
+        const params = new URLSearchParams(hash);
+        const token = params.get('access_token');
+        if (token) resolve(token);
+        else reject(new Error('No access_token in OAuth response'));
+      }
+    );
+  });
 }
 
 // Get current auth token

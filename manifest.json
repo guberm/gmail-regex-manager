@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Regex Rules Manager",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Automatically manage Gmail emails with regex-based rules for labels and actions",
   "permissions": [
     "storage",
@@ -40,7 +40,7 @@
     "128": "icons/icon128.png"
   },
   "oauth2": {
-    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "593704825970-16ll76to5rci308uvgkvjqpn246u3jde.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/gmail.modify",
       "https://www.googleapis.com/auth/gmail.labels"

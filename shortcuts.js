@@ -25,7 +25,7 @@ const shortcuts = {
 };
 
 // Setup keyboard shortcuts
-export function initKeyboardShortcuts() {
+function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     const key = [];
     if (e.ctrlKey) key.push('ctrl');

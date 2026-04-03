@@ -48,6 +48,27 @@ function setupEventListeners() {
     showConfigStatus('💡 To open the extension folder:\n1. Go to chrome://extensions/\n2. Find "Gmail Regex Rules Manager"\n3. Click "Details"\n4. Look for the extension path\n5. Open that folder in your file explorer', 'info');
   });
 
+  // OAuth client JSON file upload
+  document.getElementById('oauthJsonFile')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      const config = json.installed || json.web;
+      if (!config?.client_id) {
+        showConfigStatus('Invalid file: client_id not found. Expected a client_secret_*.json from Google Cloud Console.', 'error');
+        return;
+      }
+      await chrome.storage.local.set({ customOauth: { clientId: config.client_id } });
+      showConfigStatus(`Client ID saved. Click Sign In to authenticate with the new credentials.`, 'success');
+      document.getElementById('currentClientId').textContent = `Custom: ${config.client_id}`;
+      document.getElementById('manifestStatus').className = 'manifest-status configured';
+    } catch (err) {
+      showConfigStatus('Failed to read file: ' + err.message, 'error');
+    }
+  });
+
   // Close modal on outside click
   document.getElementById('configModal')?.addEventListener('click', (e) => {
     if (e.target.id === 'configModal') {
@@ -78,6 +99,17 @@ Tips:
   if (logLevelSelect) {
     logLevelSelect.addEventListener('change', () => updateSettings({ logLevel: logLevelSelect.value }));
   }
+
+  // Rule list action buttons (delegated — avoids inline onclick CSP violation)
+  document.getElementById('rulesList').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const ruleId = btn.dataset.ruleId;
+    const action = btn.dataset.action;
+    if (action === 'edit') editRule(ruleId);
+    else if (action === 'toggle') toggleRule(ruleId);
+    else if (action === 'delete') deleteRule(ruleId);
+  });
 
   // Add rule button
   document.getElementById('addRuleBtn').addEventListener('click', () => {
@@ -256,17 +288,17 @@ function renderRules() {
     return;
   }
 
-  rulesList.innerHTML = currentRules.map((rule, index) => `
+  rulesList.innerHTML = currentRules.map((rule) => `
     <div class="rule-item" data-rule-id="${rule.id}" draggable="true">
       <div class="rule-header">
         <span class="drag-handle" title="Drag to reorder">☰</span>
         <div class="rule-name">${escapeHtml(rule.name)}</div>
         <div class="rule-actions">
-          <button class="btn btn-icon" onclick="editRule('${rule.id}')">✏️</button>
-          <button class="btn btn-icon" onclick="toggleRule('${rule.id}')">
+          <button class="btn btn-icon" data-action="edit" data-rule-id="${rule.id}">✏️</button>
+          <button class="btn btn-icon" data-action="toggle" data-rule-id="${rule.id}">
             ${rule.enabled ? '⏸️' : '▶️'}
           </button>
-          <button class="btn btn-icon" onclick="deleteRule('${rule.id}')">🗑️</button>
+          <button class="btn btn-icon" data-action="delete" data-rule-id="${rule.id}">🗑️</button>
         </div>
       </div>
       ${renderRuleStats(rule)}
@@ -538,7 +570,7 @@ async function testRules() {
 
 // Utility functions
 function generateId() {
-  return 'rule_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  return 'rule_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
 }
 
 function parseCommaSeparated(value) {

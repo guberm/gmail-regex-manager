@@ -49,10 +49,21 @@ A powerful Chrome extension that automatically manages your Gmail emails using r
 ### Quick Setup
 
 1. **Get OAuth Credentials** - Follow our [detailed OAuth setup guide](OAUTH_SETUP.md)
-2. **Configure the extension** - Use the helper script or edit manually
+2. **Configure the extension** - Upload your JSON file in the popup (easiest) or edit manually
 3. **Load in Chrome** - Install as an unpacked extension
 
-### Method 1: Using the Helper Script (Recommended)
+### Method 1: Upload OAuth JSON in the Popup (Recommended — no file editing)
+
+1. Download or clone this repository and load it in Chrome (see [Load Extension in Chrome](#load-extension-in-chrome) below)
+2. Create OAuth credentials in [Google Cloud Console](https://console.cloud.google.com/) — see [OAUTH_SETUP.md](OAUTH_SETUP.md)
+3. When downloading the credentials, click **"Download JSON"** (the `client_secret_*.json` file)
+4. Click the extension icon, then click the **⚙️** button in the header
+5. Under **"Upload OAuth Client JSON"**, select the downloaded JSON file
+6. The Client ID is saved automatically — click **Sign In** to authenticate
+
+No manifest.json editing or extension reload required.
+
+### Method 2: Using the Helper Script
 
 ```bash
 # Install dependencies
@@ -62,7 +73,7 @@ npm install
 npm run config YOUR_CLIENT_ID.apps.googleusercontent.com
 ```
 
-### Method 2: Manual Configuration
+### Method 3: Manual Configuration
 
 1. Download or clone this repository
 2. Open `manifest.json` in a text editor
@@ -263,6 +274,14 @@ The top of the popup includes configuration options:
   - Default: 50 entries
 
 Interval changes take effect immediately and reschedule the background alarm.
+
+### OAuth Configuration (⚙️ button)
+
+Click the **⚙️** button next to "Sign In" to open the OAuth Configuration modal:
+
+- **Current Configuration Status** — shows whether a Client ID is configured
+- **Upload OAuth Client JSON** — select the `client_secret_*.json` file downloaded from Google Cloud Console; the Client ID is extracted and saved automatically, and used on the next Sign In click
+- **View Full Setup Guide** — opens the detailed OAuth setup guide
 
 ## How It Works
 
@@ -513,6 +532,7 @@ git push && git push --tags
 - [x] Retry logic with exponential backoff
 - [x] Per-rule match statistics
 - [x] Structured logging
+- [x] In-popup OAuth client JSON upload (no file editing required)
 - [ ] Advanced regex builder UI
 - [ ] Email templates for responses
 - [ ] Scheduled rule execution (time-based)

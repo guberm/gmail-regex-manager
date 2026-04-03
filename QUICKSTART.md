@@ -9,9 +9,9 @@
    - Create OAuth 2.0 credentials (Chrome Extension type)
    - Copy your Client ID
 
-2. **Configure Extension**
-   - Edit `manifest.json`
-   - Replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your actual Client ID
+2. **Configure Extension** (choose one)
+   - **Easiest:** Click **⚙️** in the popup → **Upload OAuth Client JSON** → select the `client_secret_*.json` downloaded from Google Cloud Console
+   - **Alternative:** Edit `manifest.json` and replace `YOUR_CLIENT_ID.apps.googleusercontent.com` with your actual Client ID, then reload the extension
 
 3. **Load in Chrome**
    - Go to `chrome://extensions/`

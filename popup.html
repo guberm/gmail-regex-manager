@@ -49,9 +49,15 @@
             </div>
           </div>
 
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Upload OAuth Client JSON</label>
+            <small style="display:block; margin-bottom:6px;">Select the <code>client_secret_*.json</code> file downloaded from Google Cloud Console. The Client ID will be saved and used on next Sign In.</small>
+            <input type="file" id="oauthJsonFile" accept="application/json" style="width:100%;">
+          </div>
+
           <div class="button-group">
-            <button id="oauthHelpBtn" class="btn btn-primary">� View Full Setup Guide</button>
-            <button id="openExtensionFolderBtn" class="btn btn-secondary">� Open Extension Folder</button>
+            <button id="oauthHelpBtn" class="btn btn-primary">View Full Setup Guide</button>
+            <button id="openExtensionFolderBtn" class="btn btn-secondary">Open Extension Folder</button>
           </div>
           <div id="configStatus" class="config-status" style="display:none;"></div>
         </div>
