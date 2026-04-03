@@ -130,6 +130,8 @@ Tips:
     resetForm();
   });
 
+  document.getElementById('clearAllRulesBtn').addEventListener('click', clearAllRules);
+
   // Rule form
   document.getElementById('ruleForm').addEventListener('submit', saveRule);
   document.getElementById('cancelBtn').addEventListener('click', () => {
@@ -529,6 +531,17 @@ window.deleteRule = async function(ruleId) {
   await loadRules();
   showSuccess('Rule deleted');
 };
+
+// Clear all rules
+async function clearAllRules() {
+  if (!currentRules.length) { showError('No rules to clear'); return; }
+  if (!confirm(`Are you sure you want to delete all ${currentRules.length} rule(s)? This cannot be undone.`)) return;
+
+  currentRules = [];
+  await chrome.storage.local.set({ rules: [] });
+  await loadRules();
+  showSuccess('All rules cleared');
+}
 
 // Reset form
 function resetForm() {

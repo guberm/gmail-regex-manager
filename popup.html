@@ -109,7 +109,10 @@
     <div class="tab-content active" id="rulesTab">
       <div class="rules-header">
         <h2>Active Rules</h2>
-        <button id="addRuleBtn" class="btn btn-small">+ New Rule</button>
+        <div style="display:flex; gap:6px;">
+          <button id="addRuleBtn" class="btn btn-small">+ New Rule</button>
+          <button id="clearAllRulesBtn" class="btn btn-secondary btn-small">Clear All</button>
+        </div>
       </div>
       <div id="rulesList" class="rules-list">
         <!-- Rules will be populated here -->
