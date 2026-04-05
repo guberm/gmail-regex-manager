@@ -188,7 +188,7 @@ async function getAuthToken() {
 // Check for new emails via Gmail API (no DOM dependency)
 async function checkForNewEmails() {
   const { settings } = await chrome.storage.local.get(['settings']);
-  if (!settings?.enabled) return;
+  if (settings?.enabled === false) return;
 
   if (self.appLogger) self.appLogger.log('info', 'Checking for new emails...');
 

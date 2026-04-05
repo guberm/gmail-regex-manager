@@ -38,6 +38,7 @@ function setupEventListeners() {
     } finally {
       btn.disabled = false;
       btn.textContent = '▶';
+      switchTab('log');
     }
   });
 
@@ -210,6 +211,9 @@ function initSettingsControls() {
   });
 }
 
+// Auto-refresh interval for log tab
+let logRefreshInterval = null;
+
 // Switch tabs
 function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -220,7 +224,15 @@ function switchTab(tabName) {
     content.classList.toggle('active', content.id === `${tabName}Tab`);
   });
   if (tabName === 'stats') renderStats();
-  if (tabName === 'log') renderLogs();
+  if (tabName === 'log') {
+    renderLogs();
+    if (!logRefreshInterval) {
+      logRefreshInterval = setInterval(renderLogs, 2000);
+    }
+  } else {
+    clearInterval(logRefreshInterval);
+    logRefreshInterval = null;
+  }
 }
 
 // Check authentication status
