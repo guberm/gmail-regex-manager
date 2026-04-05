@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Regex Rules Manager",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Automatically manage Gmail emails with regex-based rules for labels and actions",
   "permissions": [
     "storage",

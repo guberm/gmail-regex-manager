@@ -12,10 +12,10 @@
       <h1>📧 Gmail Rules Manager</h1>
       <div class="auth-status">
         <span id="authStatus">Not authenticated</span>
-        <button id="authBtn" class="btn btn-small">Sign In</button>
-        <button id="runNowBtn" class="btn btn-small" style="margin-left:4px;" title="Run rules now">▶</button>
-        <button id="configBtn" class="btn btn-small" style="margin-left:4px;" title="OAuth Configuration">⚙️</button>
-        <button id="helpBtn" class="btn btn-small" style="margin-left:4px;" title="Keyboard shortcuts">❓</button>
+        <button id="authBtn" class="btn btn-secondary btn-small">Sign In</button>
+        <button id="runNowBtn" class="btn btn-secondary btn-small" style="margin-left:4px;" title="Run rules now">▶</button>
+        <button id="configBtn" class="btn btn-secondary btn-small" style="margin-left:4px;" title="OAuth Configuration">⚙️</button>
+        <button id="helpBtn" class="btn btn-secondary btn-small" style="margin-left:4px;" title="Keyboard shortcuts">❓</button>
       </div>
     </header>
 
@@ -110,7 +110,7 @@
       <div class="rules-header">
         <h2>Active Rules</h2>
         <div style="display:flex; gap:6px;">
-          <button id="addRuleBtn" class="btn btn-small">+ New Rule</button>
+          <button id="addRuleBtn" class="btn btn-primary btn-small">+ New Rule</button>
           <button id="clearAllRulesBtn" class="btn btn-secondary btn-small">Clear All</button>
         </div>
       </div>
@@ -265,7 +265,7 @@
       <p class="help-text">Backup your rules or load rules from a JSON file.</p>
       <div class="form-section">
         <h3>Export</h3>
-        <button id="exportRulesBtn" class="btn btn-small">Download rules.json</button>
+        <button id="exportRulesBtn" class="btn btn-secondary btn-small">Download rules.json</button>
       </div>
       <div class="form-section">
         <h3>Import</h3>
@@ -279,9 +279,9 @@
       <h2>Performance Stats</h2>
       <p class="help-text">Recent processing performance (last 50 runs).</p>
       <div class="form-section">
-        <button id="refreshStatsBtn" class="btn btn-small">Refresh</button>
+        <button id="refreshStatsBtn" class="btn btn-secondary btn-small">Refresh</button>
         <button id="clearStatsBtn" class="btn btn-secondary btn-small">Clear</button>
-        <button id="copyStatsBtn" class="btn btn-small" title="Copy stats to clipboard">📋 Copy</button>
+        <button id="copyStatsBtn" class="btn btn-secondary btn-small" title="Copy stats to clipboard">📋 Copy</button>
       </div>
       <div id="statsSummary" class="help-text" style="margin:8px 0;"></div>
       <div style="max-height:180px; overflow:auto; border:1px solid #ccc; border-radius:4px;">
@@ -305,7 +305,7 @@
     <div class="tab-content" id="logTab">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
         <h2 style="margin:0;">Log</h2>
-        <button id="refreshLogBtn" class="btn btn-small">Refresh</button>
+        <button id="refreshLogBtn" class="btn btn-secondary btn-small">Refresh</button>
         <button id="clearLogBtn" class="btn btn-secondary btn-small">Clear</button>
       </div>
       <div id="logList" class="log-list"></div>
