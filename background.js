@@ -107,6 +107,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'createGmailLabel') {
     createGmailLabel(request.name).then(sendResponse);
     return true;
+  } else if (request.action === 'runRule') {
+    runRuleNow(request.ruleId).then(sendResponse);
+    return true;
   } else if (request.action === 'rescheduleInterval') {
     // Update settings then reschedule
     chrome.storage.local.get(['settings'], async ({ settings }) => {
@@ -454,5 +457,67 @@ async function createGmailLabel(name) {
 async function testRule(rule, email) {
   const matches = await matchesRule(email, rule);
   return { matches };
+}
+
+// Manually run a single rule against recent inbox emails, bypassing processedIds dedup
+async function runRuleNow(ruleId) {
+  const { rules } = await chrome.storage.local.get(['rules']);
+  const rule = rules?.find(r => r.id === ruleId);
+  if (!rule) {
+    if (self.appLogger) self.appLogger.log('error', `runRuleNow: rule "${ruleId}" not found`);
+    return { success: false, error: 'Rule not found' };
+  }
+
+  const { success, token } = await getAuthToken();
+  if (!success || !token) {
+    if (self.appLogger) self.appLogger.log('error', 'runRuleNow: not authenticated');
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  if (self.appLogger) self.appLogger.log('info', `▶ Manual run: "${rule.name}"`);
+
+  const query = encodeURIComponent('in:inbox newer_than:30d');
+  const listRes = await fetch(
+    `https://www.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`,
+    { headers: { 'Authorization': `Bearer ${token}` } }
+  );
+  const listData = await listRes.json();
+  if (listData.error) {
+    if (self.appLogger) self.appLogger.log('error', `runRuleNow API error: ${listData.error.message}`);
+    return { success: false, error: listData.error.message };
+  }
+
+  const allMessages = listData.messages || [];
+  if (self.appLogger) self.appLogger.log('info', `runRuleNow: checking ${allMessages.length} emails`);
+
+  const emails = (await Promise.all(allMessages.map(async (msg) => {
+    try {
+      const r = await fetch(
+        `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata` +
+        `&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      const d = await r.json();
+      const h = (name) => (d.payload?.headers || [])
+        .find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+      return { id: msg.id, from: h('From'), to: h('To'), subject: h('Subject'), body: d.snippet || '' };
+    } catch (e) { return null; }
+  }))).filter(Boolean);
+
+  let matched = 0;
+  for (const email of emails) {
+    const matches = await matchesRule(email, rule);
+    if (self.appLogger) self.appLogger.log('debug', `  "${email.subject}": ${matches ? 'MATCH' : 'no match'}`);
+    if (matches) {
+      matched++;
+      if (self.appLogger) self.appLogger.log('info', `MATCH: "${email.subject}" from ${email.from}`);
+      if (typeof self.applyRuleActions === 'function') {
+        await self.applyRuleActions(email, rule, token);
+      }
+    }
+  }
+
+  if (self.appLogger) self.appLogger.log('info', `▶ Done: ${matched}/${emails.length} matched`);
+  return { success: true, matched, total: emails.length };
 }
 

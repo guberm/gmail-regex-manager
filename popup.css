@@ -494,6 +494,16 @@ h3 {
   color: var(--text-color);
 }
 
+.btn-run-rule {
+  color: #1a73e8;
+  font-weight: bold;
+}
+
+.btn-run-rule:hover {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
 .btn-danger {
   background: var(--danger-color);
   color: white;

@@ -123,6 +123,7 @@ Tips:
     if (action === 'edit') editRule(ruleId);
     else if (action === 'toggle') toggleRule(ruleId);
     else if (action === 'delete') deleteRule(ruleId);
+    else if (action === 'run') runRuleNow(ruleId, btn);
   });
 
   // Add rule button
@@ -209,6 +210,17 @@ function initSettingsControls() {
       retentionInput.value = settings.perfRetentionLimit;
     }
   });
+}
+
+// Run a single rule manually
+async function runRuleNow(ruleId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    await chrome.runtime.sendMessage({ action: 'runRule', ruleId });
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '▶'; }
+    switchTab('log');
+  }
 }
 
 // Auto-refresh interval for log tab
@@ -327,6 +339,7 @@ function renderRules() {
         <span class="drag-handle" title="Drag to reorder">☰</span>
         <div class="rule-name">${escapeHtml(rule.name)}</div>
         <div class="rule-actions">
+          <button class="btn btn-icon btn-run-rule" data-action="run" data-rule-id="${rule.id}" title="Run this rule now">▶</button>
           <button class="btn btn-icon" data-action="edit" data-rule-id="${rule.id}">✏️</button>
           <button class="btn btn-icon" data-action="toggle" data-rule-id="${rule.id}">
             ${rule.enabled ? '⏸️' : '▶️'}
