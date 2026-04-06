@@ -202,10 +202,6 @@ OPEN SOURCE
 This extension is open source! Review the code, contribute improvements, or fork it for your own needs. We welcome community contributions.
 
 Made with ❤️ for productivity enthusiasts who want to master their inbox.
-
----
-
-Keywords: gmail, email automation, regex, rules, labels, productivity, inbox management, email filtering, automation, organize
 ```
 
 ## Store Listing Assets
