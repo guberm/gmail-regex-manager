@@ -267,8 +267,13 @@ async function checkAuthStatus() {
 // Authenticate user
 async function authenticate() {
   try {
+    const { customOauth } = await chrome.storage.local.get(['customOauth']);
+    if (!customOauth?.clientId) {
+      openOAuthHelp();
+      return;
+    }
     const response = await chrome.runtime.sendMessage({ action: 'authenticate' });
-    
+
     if (response.success) {
       showSuccess('Authentication successful!');
       checkAuthStatus();
