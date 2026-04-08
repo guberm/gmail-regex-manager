@@ -106,3 +106,7 @@ All notable changes to this project will be documented in this file.
 
 [v1.1.0]: https://github.com/guberm/gmail-regex-manager/releases/tag/v1.1.0
 [v1.0.0]: https://github.com/guberm/gmail-regex-manager/releases/tag/v1.0.0
+
+## v1.3.6 - 2026-04-08
+
+fix: Sign In button opens GitHub setup guide when no OAuth JSON is configured
