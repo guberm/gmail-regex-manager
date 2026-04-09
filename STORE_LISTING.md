@@ -177,26 +177,6 @@ TECHNICAL DETAILS
 • Performance tracking and optimization
 • 19 automated tests ensuring quality
 
-VERSION HISTORY
-
-v1.1.0 - Latest Release
-• OAuth configuration UI with setup guide
-• Live regex pattern testing
-• Keyboard shortcuts system
-• Per-rule statistics tracking
-• Drag & drop rule ordering
-• Copy stats to clipboard
-• Configurable settings (interval, retention, log levels)
-• Visual polish and animations
-• Comprehensive documentation
-
-v1.0.0 - Initial Release
-• Regex-based email matching
-• Automated actions (label, read, star, archive, trash)
-• Real-time email monitoring
-• Rule management UI
-• Import/export functionality
-
 OPEN SOURCE
 
 This extension is open source! Review the code, contribute improvements, or fork it for your own needs. We welcome community contributions.

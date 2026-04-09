@@ -1,11 +1,18 @@
 // Extracted rule matching logic for testing (kept in sync with background.js)
+
+// Parses /pattern/flags notation or treats raw string as plain pattern
+function parsePattern(raw) {
+  const m = raw.match(/^\/(.+)\/([gimsuy]*)$/s);
+  return m ? new RegExp(m[1], m[2] || 'i') : new RegExp(raw, 'i');
+}
+
 function matchesRule(email, rule) {
   try {
     const patterns = {
-      from: rule.fromPattern ? new RegExp(rule.fromPattern, 'i') : null,
-      to: rule.toPattern ? new RegExp(rule.toPattern, 'i') : null,
-      subject: rule.subjectPattern ? new RegExp(rule.subjectPattern, 'i') : null,
-      body: rule.bodyPattern ? new RegExp(rule.bodyPattern, 'i') : null
+      from: rule.fromPattern ? parsePattern(rule.fromPattern) : null,
+      to: rule.toPattern ? parsePattern(rule.toPattern) : null,
+      subject: rule.subjectPattern ? parsePattern(rule.subjectPattern) : null,
+      body: rule.bodyPattern ? parsePattern(rule.bodyPattern) : null
     };
     if (patterns.from && !patterns.from.test(email.from || '')) return false;
     if (patterns.to && !patterns.to.test(email.to || '')) return false;
